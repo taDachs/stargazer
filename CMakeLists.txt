@@ -14,10 +14,10 @@ endif()
 ###################
 ## find packages ##
 ###################
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS ceres_catkin glog_catkin)
 find_package(OpenCV REQUIRED)
 find_package(yaml-cpp REQUIRED)
-find_package(Ceres REQUIRED)
+#find_package(Ceres REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 ############################
@@ -69,7 +69,6 @@ add_dependencies(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
-    ${CERES_LIBRARIES}
     yaml-cpp
     )
 
