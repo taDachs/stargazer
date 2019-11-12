@@ -25,6 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
+#include <opencv2/features2d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "iostream"
 #include "math.h"
@@ -61,18 +62,12 @@ public:
     int DetectLandmarks(const cv::Mat& img, std::vector<ImgLandmark>& detected_landmarks);
 
     cv::Mat grayImage_;                      /**< Keeps a copy of the grayvalue image */
-    cv::Mat filteredImage_;                  /**< Keeps a copy of the filtered image */
     std::vector<cv::Point> clusteredPixels_; /**< Keeps a copy of pixel clusters found */
     std::vector<Cluster> clusteredPoints_;   /**< Keeps a copy of point clusters found*/
     std::vector<ImgLandmark> landmarkHypotheses_; /**< Keeps a copy of landmark hypotheses*/
 
-    uint8_t threshold; /**< Threshold for grayvalue thresholding 0-254*/
-    uint32_t tight_filter_size;
-    uint32_t wide_filter_size;
-    float maxRadiusForPixelCluster;   /**< Maximum radius for clustering pixels to marker points*/
-    uint16_t minPixelForCluster;      /**< Minimum count of pixels per marker point*/
-    uint16_t maxPixelForCluster;      /**< Maximum count of pixels per marker point*/
     float maxRadiusForCluster;        /**< Maximum radius for clustering marker points to landmarks*/
+    cv::SimpleBlobDetector::Params blobParams;
     int maxCornerHypotheses; /**< Maximum number of corner hypotheses which are still considered*/
     double cornerHypothesesCutoff; /**< Defines near-best corner points hypotheses which are still considered further*/
     uint16_t minPointsPerLandmark;    /**< Minimum count of marker points per landmark (0)*/
@@ -84,20 +79,14 @@ public:
     double pointInsideTolerance;
 
 private:
+
     /**
-     * @brief Applies a difference of gaussian matched filter to the image
+     * @brief Uses SimpleBlobDetection for point detection
      *
      * @param img_in    raw image
-     * @param img_out   filtered image
      */
-    void FilterImage(const cv::Mat& img_in, cv::Mat& img_out);
-    /**
-     * @brief Finds hypotheses for marker points by thresholding the input image and clustering the pixels.
-     *
-     * @param img_in
-     * @return std::vector<cv::Point>
-     */
-    std::vector<cv::Point> FindPoints(cv::Mat& img_in);
+    std::vector<cv::Point> FindBlobs(cv::Mat& img_in);
+
     /**
      * @brief Finds hypotheses for landmarks by clustering the input points
      *

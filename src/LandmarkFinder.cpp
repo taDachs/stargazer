@@ -30,13 +30,7 @@ using namespace stargazer;
 LandmarkFinder::LandmarkFinder(std::string cfgfile) {
 
     /// set parameters
-    threshold = 20;
-    tight_filter_size = 3;
-    wide_filter_size = 11;
 
-    maxRadiusForPixelCluster = 3;
-    minPixelForCluster = 1;
-    maxPixelForCluster = 1000;
     maxRadiusForCluster = 40;
     minPointsPerLandmark = 5;
     maxPointsPerLandmark = 9;
@@ -48,6 +42,26 @@ LandmarkFinder::LandmarkFinder(std::string cfgfile) {
     fwCrossProduct = 1.0;
     cornerAngleTolerance = 1.0;
     pointInsideTolerance = 1.0;
+
+    blobParams.filterByArea = false;
+    blobParams.filterByCircularity = false;
+    blobParams.filterByColor = false;
+    blobParams.filterByConvexity = false;
+    blobParams.filterByInertia = false;
+    blobParams.maxArea = std::numeric_limits<float>::max();
+    blobParams.maxCircularity = 1.f;
+    blobParams.maxConvexity = 1.f;
+    blobParams.maxInertiaRatio = 1.f;
+    blobParams.maxThreshold = 255.f;
+    blobParams.minArea = 0.f;
+    blobParams.minCircularity = 0.f;
+    blobParams.minConvexity = 0.f;
+    blobParams.minDistBetweenBlobs = 0.f;
+    blobParams.minInertiaRatio = 0.f;
+    blobParams.minRepeatability = 0;
+    blobParams.minThreshold = 0.f;
+    blobParams.thresholdStep = 50.f;
+
     /// Read in Landmark ids
     landmark_map_t landmarks;
     readMapConfig(cfgfile, landmarks);
@@ -80,11 +94,9 @@ int LandmarkFinder::DetectLandmarks(const cv::Mat& img, std::vector<ImgLandmark>
     }
     detected_landmarks.clear();
 
-    /// smooth image
-    FilterImage(grayImage_, filteredImage_);
     /// This method finds bright points in image
     /// returns vector of center points of pixel groups
-    clusteredPixels_ = FindPoints(filteredImage_);
+    clusteredPixels_ = FindBlobs(grayImage_);
 
     /// cluster points to groups which could be landmarks
     /// returns a vector of clusters which themselves are vectors of points
@@ -98,58 +110,6 @@ int LandmarkFinder::DetectLandmarks(const cv::Mat& img, std::vector<ImgLandmark>
     //  detected_landmarks.size() << std::endl;
 
     return 0;
-}
-
-///--------------------------------------------------------------------------------------///
-/// FilterImage for pixel groups
-/// disk filter image to find round shapes
-///--------------------------------------------------------------------------------------///
-void LandmarkFinder::FilterImage(const cv::Mat& img_in, cv::Mat& img_out) {
-
-    cv::Mat tight_filtered, wide_filtered;
-    if (tight_filter_size == 0) {
-        tight_filtered = img_in;
-    } else {
-        cv::boxFilter(img_in, tight_filtered, -1, cv::Size(tight_filter_size, tight_filter_size), cv::Point(-1, -1),
-                      true, cv::BORDER_DEFAULT);
-    }
-    cv::boxFilter(img_in, wide_filtered, -1, cv::Size(wide_filter_size, wide_filter_size), cv::Point(-1, -1), true,
-                  cv::BORDER_DEFAULT);
-    img_out = tight_filtered - wide_filtered;
-}
-
-///--------------------------------------------------------------------------------------///
-/// FindPoints for pixel groups
-/// threshold pixels and group them
-///--------------------------------------------------------------------------------------///
-std::vector<cv::Point> LandmarkFinder::FindPoints(cv::Mat& img_in) {
-
-    /// thresholding for pixels: put all pixels over a threshold in vector
-    cv::Mat binary;
-    cv::threshold(img_in, binary, threshold, 255, cv::THRESH_BINARY);
-
-    std::vector<cv::Point> pixels;
-    cv::findNonZero(binary, pixels);
-
-    /// use this vector to group all pixels
-    /// todo: this can be done more efficiently, e.g. region growing
-    std::vector<Cluster> clusteredPixels;
-    FindClusters(pixels, clusteredPixels, maxRadiusForPixelCluster, minPixelForCluster, maxPixelForCluster);
-
-    /// compute mean of each pixel cluster and put it into output vector
-    /// todo: this can be done more efficiently
-    std::vector<cv::Point> points;
-    points.reserve(clusteredPixels.size());
-    for (auto& cluster : clusteredPixels) {
-        cv::Point thisPoint = cv::Point(0, 0);
-        for (auto& pixel : cluster) { /// go thru all points in this cluster
-            thisPoint += pixel;
-        }
-        thisPoint *= 1.0 / cluster.size();
-        points.push_back(thisPoint);
-    }
-
-    return points;
 }
 
 ///--------------------------------------------------------------------------------------///
@@ -194,6 +154,25 @@ void LandmarkFinder::FindClusters(const std::vector<cv::Point>& points_in, std::
                                               maxPointsThreshold < cluster.size());
                                   }),
                    clusters.end());
+}
+
+std::vector<cv::Point> LandmarkFinder::FindBlobs(cv::Mat& img_in) {
+
+    //cv::Mat img;
+    //bitwise_not (img_in, img);
+
+    // BlobDetector with latest parameters
+    std::vector<cv::KeyPoint> keypoints;
+    cv::Ptr<cv::SimpleBlobDetector> detector = cv::SimpleBlobDetector::create(blobParams);
+    detector->detect(img_in, keypoints);
+
+    // two step conversion
+    std::vector<cv::Point2f> points2f;
+    cv::KeyPoint::convert(keypoints, points2f);
+    std::vector<cv::Point> points;
+    cv::Mat(points2f).convertTo(points, cv::Mat(points).type());
+
+    return points;
 }
 
 ///--------------------------------------------------------------------------------------///
@@ -462,6 +441,7 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark, std::vector<uint1
 bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark, std::vector<uint16_t>& valid_ids) {
     // TOD clean up this function
     uint16_t nThisID = 0;
+    const float threshold = 128.f;
 
     /// same as before: finde affine transformation, but this time from landmark
     /// coordinates to image coordinates
