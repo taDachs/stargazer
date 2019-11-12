@@ -17,6 +17,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "LandmarkFinder.h"
+#include <algorithm>
+#include <limits>
 #include <boost/range/adaptor/reversed.hpp>
 
 using namespace std;
@@ -39,6 +41,13 @@ LandmarkFinder::LandmarkFinder(std::string cfgfile) {
     minPointsPerLandmark = 5;
     maxPointsPerLandmark = 9;
 
+    // Weight factors for corner detection
+    cornerHypothesesCutoff = 1.0;
+    maxCornerHypotheses = 10;
+    fwLengthTriangle = 1.0;
+    fwCrossProduct = 1.0;
+    cornerAngleTolerance = 1.0;
+    pointInsideTolerance = 1.0;
     /// Read in Landmark ids
     landmark_map_t landmarks;
     readMapConfig(cfgfile, landmarks);
@@ -189,104 +198,136 @@ void LandmarkFinder::FindClusters(const std::vector<cv::Point>& points_in, std::
 
 ///--------------------------------------------------------------------------------------///
 /// FindCorners identifies the three corner points and sorts them into output vector
-/// -> find three points whos sum of length is maximum and two edges are perpendicular
+/// -> find three points which maximize a certain score for corner points
 ///--------------------------------------------------------------------------------------///
-bool LandmarkFinder::FindCorners(std::vector<cv::Point>& point_list, std::vector<cv::Point>& corner_points) {
+void LandmarkFinder::FindCorners(const std::vector<cv::Point>& point_list, std::vector<ImgLandmark>& hypotheses) {
 
-    float fw1 = 0.6, fw2 = 30.0, fw3 = 3.0; // Weight factors for score function
-    float fp = 1.05;                        // safety_factor_for_length_comparison
-    float best_score = -10000;              // Score for best combination of points
+    typedef std::pair<double, ImgLandmark> LmHypothesis;
+    std::vector<LmHypothesis> scored_hypotheses;
+    double best_score = std::numeric_limits<double>::lowest(); // Score for best combination of points
 
-    /*  Numbering of corners and coordinate frame FOR THIS FUNCTION ONLY // TODO use normal numbering
+    /*  Numbering of corners and coordinate frame FOR THIS FUNCTION ONLY
      *       ---> y
-     *  |   1   .   .   .
+     *  |   A   .   .   .
      *  |   .   .   .   .
      *  V   .   .   .   .
-     *  x   3   .   .   2
+     *  x   S   .   .   B
      */
 
     /// Try all combinations of three points
-    bool corners_found = false;
-    cv::Point *cornerOne, *cornerTwo, *cornerThree;
+    cv::Point pS, pA, pB, pH1, pH2;
     for (size_t i = 0; i < point_list.size(); i++) {
-        cv::Point& firstPoint = point_list[i];
-        for (size_t j = i + 1; j < point_list.size(); j++) {
-            cv::Point& secondPoint = point_list[j];
-            cv::Point v12 = firstPoint - secondPoint;
-            for (size_t k = j + 1; k < point_list.size(); k++) {
-                cv::Point& thirdPoint = point_list[k];
-                cv::Point v31 = firstPoint - thirdPoint;
-                cv::Point v32 = secondPoint - thirdPoint;
+        pS = point_list[i];
+        for (size_t j = 0; j < point_list.size(); j++) {
+            pH1 = point_list[j];
+            for (size_t k = j+1; k < point_list.size(); k++) {
+                pH2 = point_list[k];
 
-                /// Since we test every combination only once, make sure the lengths are correct:
-                // norm(v12) > norm(v31) >= (v32)
-                if ((cv::norm(v31) > fp * cv::norm(v32)) && (cv::norm(v31) > fp * cv::norm(v12))) {
-                    v12 = v31; // v12 should be longest -> hypotenuse
-                    v31 = firstPoint - secondPoint;
-                    v32 = v32;
-                } else if ((cv::norm(v32) > fp * cv::norm(v31)) && (cv::norm(v32) > fp * cv::norm(v12))) {
-                    v12 = v32;
-                    v32 = v31;
-                    v31 = firstPoint - secondPoint;
+                if (i==j || i==k) {
+                    // Skip double assignments
+                    continue;
                 }
 
-                float dist12 = cv::norm(v12);
-                float dist31 = cv::norm(v31);
-                float dist32 = cv::norm(v32);
-                float sumOfLength = dist12 + dist31 + dist32;
+                // ensure rhs
+                if(0. > (pH1 - pS).cross(pH2 - pS)) {
+                    pA = pH2;
+                    pB = pH1;
+                } else {
+                    pA = pH1;
+                    pB = pH2;
+                }
 
-                // Project v32 onto v31 -> resulting length should be close to zero
-                // TODO use cross product?
-                float projectedLength = std::abs((v32.x * v31.x + v32.y * v31.y)) / dist31 / dist32;
-                float diffInLength = fabs(dist31 - dist32);
+                cv::Point vSA = pA - pS;
+                cv::Point vSB = pB - pS;
+                cv::Point vBA = pB - pA;
 
-                // We are trying to maximise sumOfLength while minimizing projectedLength and diffInLength
-                if (best_score < (fw1 * sumOfLength - (fw2 * projectedLength + fw3 * diffInLength))) {
-                    if (100.0 > dist12 && 80.0 > dist31 && 80.0 > dist32) {
-                        if (fabs(dist31 - dist32) < 0.5 * dist12) {
-                            /// remember their addresses and distance
-                            corners_found = true;
-                            cornerOne = &firstPoint;
-                            cornerTwo = &secondPoint;
-                            cornerThree = &thirdPoint;
-                            best_score = fw1 * sumOfLength - fw2 * projectedLength - fw3 * diffInLength;
+                double normSA = cv::norm(vSA);
+                double normSB = cv::norm(vSB);
+                double normBA = cv::norm(vBA);
+
+                // check angle between secants
+                double cosangle = vSA.dot(vSB) / (normSA * normSB);
+                if (std::abs(cosangle) > cornerAngleTolerance) {
+                    continue;
+                }
+
+                // check if each point is on correct side of assumed secant
+                bool is_point_invalid = false;
+                // vSP = alpha*vSA + beta*vBA
+                double det = vSA.cross(vSB);
+                for (size_t n = 0; n < point_list.size(); n++) {
+                    //skip current corners
+                    if (n == i || n == j || n == k) {
+                        continue;
+                    }
+                    cv::Point vSP = point_list[n] - pS;
+                    double alpha = (1./det) * vSP.cross(vSB);
+                    double beta = (1./det) * vSA.cross(vSP);
+                    if(alpha < -pointInsideTolerance ||
+                       beta < -pointInsideTolerance ||
+                       alpha > 1.0 + pointInsideTolerance ||
+                       beta > 1.0 + pointInsideTolerance) {
+                      is_point_invalid = true;
+                      break;
+                    }
+                }
+                if (is_point_invalid) {
+                    //skip corner hypothesis
+                    continue;
+                }
+
+                double score;
+                {
+                    // The weight of the score components should be invariant to scaling
+                    // e.g. circumference linear vs area quadratic
+
+                    // Cross product (approximate area of stargazer pcb)
+                    double crossProduct = std::fabs(vSA.cross(vBA));
+
+                    // Triangle circumference
+                    double lengthTriangle = normSA + normSB + normBA;
+
+                    // Total score
+                    score = fwCrossProduct * crossProduct +
+                            fwLengthTriangle * lengthTriangle * lengthTriangle;
+                }
+
+
+                // Keep hypothesis if its considered to be good (relative to current best)
+                if (score < cornerHypothesesCutoff * best_score) {
+                    continue;
+                } else{
+                    ImgLandmark lm;
+                    // corners
+                    lm.voCorners.push_back(pA);
+                    lm.voCorners.push_back(pS);
+                    lm.voCorners.push_back(pB);
+                    // id points
+                    for (size_t n = 0; n < point_list.size(); n++) {
+                        if (n == i || n == j || n == k) {
+                            continue;
                         }
+                        lm.voIDPoints.push_back(point_list[n]);
+                    }
+                    scored_hypotheses.push_back(LmHypothesis(score, lm));
+                    if (score > best_score) {
+                      best_score = score;
                     }
                 }
             }
         }
     }
-    if (!corners_found) {
-        return false;
+    //Sort out bad hypotheses (relative to total best)
+    auto bad_end = std::remove_if(scored_hypotheses.begin(), scored_hypotheses.end(),
+                              [this, best_score](LmHypothesis lmh){return lmh.first < cornerHypothesesCutoff*best_score;});
+
+    //Sort by score
+    std::sort (scored_hypotheses.begin(), bad_end, [](LmHypothesis a, LmHypothesis b){return a.first > b.first;});
+
+    //Append set of hypotheses
+    for (auto it = scored_hypotheses.begin(); it != bad_end && it != scored_hypotheses.begin()+maxCornerHypotheses; it++) {
+      hypotheses.push_back(it->second);
     }
-
-    /// The three distances have to be updated for calculations in the next steps
-    cv::Point v12 = *cornerTwo - *cornerOne;
-    cv::Point v31 = *cornerOne - *cornerThree;
-    cv::Point v32 = *cornerTwo - *cornerThree;
-
-    /// Compare the distances and get the diagonal of the landmark
-    /// note the reversed order: it's 1-3-2, because the corner 3 is the one
-    /// between 1 and 2 this helps for post-processing
-    if ((cv::norm(v12) > fp * cv::norm(v31)) && (cv::norm(v12) > fp * cv::norm(v32))) {
-        ;
-    } else if ((cv::norm(v31) > fp * cv::norm(v32)) && (cv::norm(v31) > fp * cv::norm(v12))) {
-        std::swap(cornerTwo, cornerThree);
-    } else {
-        std::swap(cornerOne, cornerThree);
-    }
-
-    /// Store in output container
-    corner_points.push_back(*cornerOne);
-    corner_points.push_back(*cornerThree);
-    corner_points.push_back(*cornerTwo);
-
-    /// Remove from input list
-    point_list.erase(std::remove(point_list.begin(), point_list.end(), *cornerOne), point_list.end());
-    point_list.erase(std::remove(point_list.begin(), point_list.end(), *cornerTwo), point_list.end());
-    point_list.erase(std::remove(point_list.begin(), point_list.end(), *cornerThree), point_list.end());
-
-    return true;
 }
 
 ///--------------------------------------------------------------------------------------///
@@ -294,9 +335,7 @@ bool LandmarkFinder::FindCorners(std::vector<cv::Point>& point_list, std::vector
 ///
 ///--------------------------------------------------------------------------------------///
 std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster>& clusteredPoints) {
-
-    std::vector<ImgLandmark> OutputLandmarks;
-
+    landmarkHypotheses_.clear();
     for (auto& cluster : clusteredPoints) { /// go thru all clusters
 
         /// since most probably each cluster represents a landmark, create one
@@ -306,13 +345,9 @@ std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster
             cluster; /// all points in this cluster are copied to the ID point vector for further examination
 
         /// FindCorners will move the three corner points into the corners vector
-        if (!FindCorners(newLandmark.voIDPoints, newLandmark.voCorners))
-            continue;
-
-        /// add this landmark to the landmark vector
-        OutputLandmarks.push_back(newLandmark);
+        FindCorners(cluster, landmarkHypotheses_);
     }
-
+    std::vector<ImgLandmark> OutputLandmarks(landmarkHypotheses_);
     GetIDs(OutputLandmarks);
 
     /// done and return landmarks
@@ -324,27 +359,17 @@ std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster
 ///
 ///--------------------------------------------------------------------------------------///
 bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark, std::vector<uint16_t>& valid_ids) {
-    // TOD clean up this function
+    // TODO clean up this function
     /// first of all: get the three corner points
     const cv::Point* oCornerOne = &landmark.voCorners.at(0);
     const cv::Point* oCornerTwo = &landmark.voCorners.at(1);
     const cv::Point* oCornerThree = &landmark.voCorners.at(2);
 
-    // TODO move these checks into FindCorners function
     /// second: get the x- and y-axis of the landmark
     cv::Point oTwoOne = *oCornerOne - *oCornerTwo;
     cv::Point oTwoThree = *oCornerThree - *oCornerTwo;
 
-    /// third: make sure, they are in the right order.
-    /// we do this by checking if the cross product is positive
-    if (0 > oTwoOne.cross(oTwoThree)) {
-        std::swap(oCornerOne, oCornerThree);
-        std::swap(oTwoOne, oTwoThree);
-        std::swap(landmark.voCorners.at(0), landmark.voCorners.at(2));
-    }
-
     /// at this point we have a right hand system in image coordinates
-
     /// now, we find the affine transformation which maps the landmark from
     /// image coordinate in a landmark-related coordinate frame
     /// with the corners defined as (0,0), (1,0) and (0,1)
