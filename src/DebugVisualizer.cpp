@@ -73,6 +73,33 @@ cv::Mat DebugVisualizer::ShowClusters(const cv::Mat& img,
     return temp;
 }
 
+cv::Mat DebugVisualizer::ShowLandmarkHypotheses(cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
+    cv::Mat temp = img.clone();
+    prepareImg(temp);
+    for (auto& lm : landmarks) {
+        // Secants
+        line(temp, lm.voCorners[1], lm.voCorners[0], cv::viz::Color::red());
+        line(temp, lm.voCorners[1], lm.voCorners[2], cv::viz::Color::red());
+        // Corners
+        cv::drawMarker(temp,lm.voCorners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2); // leading corner clockwise (if assumption of rhs is valid)
+        circle(temp, lm.voCorners[1], 3, cv::viz::Color::red(), 2); // middle corner
+        circle(temp, lm.voCorners[2], 3, cv::viz::Color::red(), 2); // following corner clockwise
+        // Inner points
+        for (auto& imgPoint : lm.voIDPoints) {
+            circle(temp, imgPoint, 1, FZI_GREEN, 2);
+        }
+        cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
+                         (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
+        double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
+                             pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
+        circle(img, median, radius, FZI_BLUE, 2);
+
+        //Landmarks have no ID yet
+    }
+    ShowImage(temp, "Landmark Hypotheses");
+    return temp;
+}
+
 void DebugVisualizer::DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
 
     for (auto& lm : landmarks) {
