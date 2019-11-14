@@ -529,28 +529,3 @@ int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
     landmarks.erase(unknownLandmarksBegin, landmarks.end());
     return 0; //TODO What defines success?
 }
-
-void LandmarkFinder::parallel_vector_sort(std::vector<uint16_t>& ids, std::vector<cv::Point>& points) {
-    size_t len = ids.size();
-    size_t stepsize = len / 2; // Zu Beginn ist die Lücke über den halben Array.
-    bool b = true;
-    while (b) {
-        b = false; // b bleibt auf false, wenn kein einziges Mal etwas falsch ist.
-        for (size_t i = 0; i < len; i++) {
-            if (stepsize + i >= len) // Schutz vor Speicherfehlern
-            {
-                break;
-            }
-            if (ids[i] > ids[i + stepsize]) // überprüft ob die zwei Elemente falsch herum sind
-            {
-                std::swap(ids[i], ids[i + stepsize]); // wenn ja -> vertauschen
-                std::swap(points[i], points[i + stepsize]);
-                b = true;
-            }
-        }
-        stepsize = stepsize / 1.3; // Lücke verkleinern für nächsten Durchlauf
-        if (stepsize < 1) {
-            stepsize = 1;
-        }
-    }
-}

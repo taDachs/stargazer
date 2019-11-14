@@ -144,14 +144,6 @@ private:
      * @return bool
      */
     bool CalculateIdBackward(ImgLandmark& landmark, std::vector<uint16_t>& valid_ids);
-
-    /**
-     * @brief Sorts both vectors, based on the first one.
-     *
-     * @param ids
-     * @param points
-     */
-    void parallel_vector_sort(std::vector<uint16_t>& ids, std::vector<cv::Point>& points);
 };
 
 } // namespace stargazer
