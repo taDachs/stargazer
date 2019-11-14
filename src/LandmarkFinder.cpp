@@ -409,17 +409,6 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark, std::vector<uint1
         /// add this point's contribution to the landmark ID
         ID += ThisPointID;
     }
-
-    /// Sort points
-    /* The order of id points
-    *      x   3   7   .
-    *      1   4   8   12
-    *      2   5   9   13
-    *      x   6   10  x
-    */
-    parallel_vector_sort(pPointsIDs, landmark.voIDPoints);
-
-    /// assign ID to landmark
     landmark.nID = ID;
 
     /// validate with the vector of available IDs
@@ -508,16 +497,6 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark, std::vector<uint
             nThisID += ThisPointID;
         }
     }
-
-    /// Sort points
-    /* The order of id points
-    *      x   3   7   .
-    *      1   4   8   12
-    *      2   5   9   13
-    *      x   6   10  x
-    */
-    parallel_vector_sort(pPointsIDs, landmark.voIDPoints);
-
     landmark.nID = nThisID;
 
     /// now, same as before, validate with available IDs
