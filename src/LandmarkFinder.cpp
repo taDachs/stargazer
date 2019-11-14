@@ -537,13 +537,6 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark, std::vector<uint
 /// see http://hagisonic.com/ for information on pattern
 ///--------------------------------------------------------------------------------------///
 int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
-    /*  Numbering of corners and coordinate frame
-     *       ---> y
-     *  |   1   .   .   .
-     *  |   .   .   .   .
-     *  V   .   .   .   .
-     *  x   2   .   .   3
-     */
     /// get vector of possible IDs
     std::vector<uint16_t> validIDs = valid_ids_;
 
