@@ -392,13 +392,11 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark, std::vector<uint1
 
         /// it's 1-y because in the definition of the landmark ID the x axis runs
         /// down
-        int nY = floor((y) / 0.25);
-        int nX = floor((1 - x) / 0.25);
+        int nY = floor((y) * 4.);
+        int nX = floor((1 - x) * 4.);
 
-        nX = nX < 0 ? 0 : nX;
-        nX = nX > 3 ? 3 : nX;
-        nY = nY < 0 ? 0 : nY;
-        nY = nY > 3 ? 3 : nY;
+        nX = std::clamp(nY, 0, 3);
+        nY = std::clamp(nY, 0, 3);
 
         /// the binary values ar coded: x steps are binary shifts within 4 bit
         /// blocks
