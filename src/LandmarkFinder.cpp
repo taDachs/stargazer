@@ -539,34 +539,16 @@ int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
     /// get vector of possible IDs
     std::vector<uint16_t> validIDs = valid_ids_;
 
-    /// vector of iterators to Landmarks which where not identified correctly
-    /// once we've been through all landmarks, we can look up available IDs in the
-    /// vector define above.
-    /// this is why we remember errors but don't correct them right away.
-    std::vector<ImgLandmark> landmarksInQueue;
+    auto unknownLandmarksBegin = std::remove_if(landmarks.begin(),
+                                                landmarks.end(),
+                                                [this, &validIDs](ImgLandmark& lm){return !CalculateIdForward(lm, validIDs);});
 
-    /// First, try to use the id points given to determine landmark id.
-    std::vector<ImgLandmark>::iterator pLandmarkIt = landmarks.begin();
-    while (pLandmarkIt != landmarks.end()) {
+    unknownLandmarksBegin = std::remove_if(unknownLandmarksBegin,
+                                           landmarks.end(),
+                                           [this, &validIDs](ImgLandmark& lm){return !CalculateIdBackward(lm, validIDs);});
 
-        if (CalculateIdForward(*pLandmarkIt, validIDs)) {
-            ++pLandmarkIt; /// go to next landmark
-        } else {
-            landmarksInQueue.push_back(*pLandmarkIt); /// put this landmark in queue for second processing run
-            landmarks.erase(pLandmarkIt); /// delete it from valid landmark list. This also is a step to next landmark
-        }
-    }
-
-    /// now, go thru all landmarks which did not match a valid ID and try to match them to one of the remaining
-    for (auto& landmark : landmarksInQueue) {
-        if (CalculateIdBackward(landmark, validIDs)) {
-            landmarks.push_back(landmark);
-        } else {
-            ; /// go to next landmark
-        }
-    }
-
-    return 0;
+    landmarks.erase(unknownLandmarksBegin, landmarks.end());
+    return 0; //TODO What defines success?
 }
 
 void LandmarkFinder::parallel_vector_sort(std::vector<uint16_t>& ids, std::vector<cv::Point>& points) {
