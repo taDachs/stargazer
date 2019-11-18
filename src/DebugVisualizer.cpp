@@ -37,13 +37,14 @@ void DebugVisualizer::prepareImg(cv::Mat& img) {
         cvtColor(img, img, CV_GRAY2RGB);
     }
 }
-void DebugVisualizer::ShowImage(cv::Mat& img, std::string name) {
+
+void DebugVisualizer::ShowImage(const cv::Mat& img, std::string name) {
     cv::namedWindow(name, m_window_mode);
     cv::imshow(name, img);
     cv::waitKey(m_wait_time);
 }
 
-cv::Mat DebugVisualizer::ShowPoints(const cv::Mat& img, const std::vector<cv::Point> points) {
+cv::Mat DebugVisualizer::DrawPoints(const cv::Mat& img, const std::vector<cv::Point> points) {
     const int marker_size(8);
     const int thickness(1);
     cv::Mat temp = img.clone();
@@ -51,12 +52,10 @@ cv::Mat DebugVisualizer::ShowPoints(const cv::Mat& img, const std::vector<cv::Po
     for (auto& point : points) {
         cv::drawMarker(temp, point, FZI_GREEN, cv::MARKER_CROSS, marker_size, thickness);
     }
-    ShowImage(temp, "Points");
     return temp;
 }
 
-cv::Mat DebugVisualizer::ShowClusters(const cv::Mat& img,
-                                      const std::vector<std::vector<cv::Point>> points) {
+cv::Mat DebugVisualizer::DrawClusters(const cv::Mat& img, const std::vector<std::vector<cv::Point>> points) {
     cv::Mat temp = img.clone();
     prepareImg(temp);
     for (auto& group : points) {
@@ -75,11 +74,10 @@ cv::Mat DebugVisualizer::ShowClusters(const cv::Mat& img,
 
         circle(temp, median, radius, FZI_BLUE, 2);
     }
-    ShowImage(temp, "Clusters");
     return temp;
 }
 
-cv::Mat DebugVisualizer::ShowLandmarkHypotheses(cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
+cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
     cv::Mat temp = img.clone();
     prepareImg(temp);
     for (auto& lm : landmarks) {
@@ -102,12 +100,12 @@ cv::Mat DebugVisualizer::ShowLandmarkHypotheses(cv::Mat& img, const std::vector<
 
         //Landmarks have no ID yet
     }
-    ShowImage(temp, "Landmark Hypotheses");
     return temp;
 }
 
-void DebugVisualizer::DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
-
+cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
+    cv::Mat temp = img.clone();
+    prepareImg(temp);
     for (auto& lm : landmarks) {
         for (auto& imgPoint : lm.voCorners) {
             circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
@@ -128,14 +126,16 @@ void DebugVisualizer::DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>
         imgPoint.y += TEXT_OFFSET;
         putText(img, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
     }
+    return temp;
 }
 
-void DebugVisualizer::DrawLandmarks(cv::Mat& img,
-                                    const landmark_map_t& landmarks,
-                                    const camera_params_t& camera_intrinsics,
-                                    const pose_t& ego_pose) {
+cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
+                                       const landmark_map_t& landmarks,
+                                       const camera_params_t& camera_intrinsics,
+                                       const pose_t& ego_pose) {
+    cv::Mat temp = img.clone();
+    prepareImg(temp);
     cv::Point imgPoint;
-
     for (auto& lm : landmarks) {
         for (size_t i = 0; i < lm.second.points.size(); i++) {
             auto& pt = lm.second.points[i];
@@ -164,4 +164,5 @@ void DebugVisualizer::DrawLandmarks(cv::Mat& img,
         imgPoint.y += TEXT_OFFSET;
         putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
     }
+    return temp;
 }

@@ -50,7 +50,7 @@ public:
      * @param img Image to be shown.
      * @param name  (optional) Name of the window to be opened.
      */
-    void ShowImage(cv::Mat& img, std::string name = "Image");
+    void ShowImage(const cv::Mat& img, std::string name = "Image");
 
     // Setters
     /**
@@ -75,21 +75,21 @@ public:
     }
 
     /**
-     * @brief Draws and shows the vector of points given.
+     * @brief Draws the vector of points given.
      *
      * @param img Input image is copied
      * @param points    Points to be drawn
      * @return cv::Mat A copy of the input image with the drawn points
      */
-    cv::Mat ShowPoints(const cv::Mat& img, const std::vector<cv::Point> points);
+    cv::Mat DrawPoints(const cv::Mat& img, const std::vector<cv::Point> points);
     /**
-     * @brief Draws and shows the vector of clusters given.
+     * @brief Draws the vector of clusters given.
      *
      * @param img Input image is copied
      * @param points    Clusters to be drawn
      * @return cv::Mat A copy of the input image with the drawn points
      */
-    cv::Mat ShowClusters(const cv::Mat& img, const std::vector<std::vector<cv::Point>> points);
+    cv::Mat DrawClusters(const cv::Mat& img, const std::vector<std::vector<cv::Point>> points);
 
     /**
      * @brief Draws the image landmark hypotheses into the input image
@@ -98,15 +98,16 @@ public:
      * @param landmarks Landmark hypotheses to be drawn
      * @return cv::Mat A copy of the input image with the drawn landmark hypotheses
      */
-    cv::Mat ShowLandmarkHypotheses(cv::Mat& img, const std::vector<ImgLandmark>& landmarks);
+    cv::Mat DrawLandmarkHypotheses(const cv::Mat& img, const std::vector<ImgLandmark>& landmarks);
 
     /**
      * @brief Draws the observed image landmarks into the input image
      *
      * @param img   Input image, gets modified!
      * @param landmarks Landmarks to be drawn
+     * @return cv::Mat A copy of the input image with the drawn landmarks
      */
-    void DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>& landmarks);
+    cv::Mat DrawLandmarks(const cv::Mat& img, const std::vector<ImgLandmark>& landmarks);
 
     /**
      * @brief Draws the landmarks of a map into the img based on the given camera pose
@@ -115,11 +116,12 @@ public:
      * @param landmarks Map of Landmarks in world coordinates!
      * @param camera_intrinsics Camera parameters
      * @param ego_pose  Camera pose
+     * @return cv::Mat A copy of the input image with the drawn landmarks
      */
-    void DrawLandmarks(cv::Mat& img,
-                       const landmark_map_t& landmarks,
-                       const camera_params_t& camera_intrinsics,
-                       const pose_t& ego_pose);
+    cv::Mat DrawLandmarks(const cv::Mat& img,
+                          const landmark_map_t& landmarks,
+                          const camera_params_t& camera_intrinsics,
+                          const pose_t& ego_pose);
 
 private:
     static const cv::Scalar FZI_BLUE, FZI_GREEN, FZI_RED;
