@@ -27,6 +27,10 @@ const cv::Scalar DebugVisualizer::FZI_BLUE(163, 101, 0);
 const cv::Scalar DebugVisualizer::FZI_GREEN(73, 119, 0);
 const cv::Scalar DebugVisualizer::FZI_RED(39, 157, 236);
 
+const int DebugVisualizer::POINT_THICKNESS(2);
+const int DebugVisualizer::TEXT_OFFSET(25);
+const double DebugVisualizer::FONT_SCALE(0.4);
+
 void DebugVisualizer::prepareImg(cv::Mat& img) {
     if (img.type() == CV_8UC1) {
         // input image is grayscale
@@ -40,10 +44,12 @@ void DebugVisualizer::ShowImage(cv::Mat& img, std::string name) {
 }
 
 cv::Mat DebugVisualizer::ShowPoints(const cv::Mat& img, const std::vector<cv::Point> points) {
+    const int marker_size(8);
+    const int thickness(1);
     cv::Mat temp = img.clone();
     prepareImg(temp);
     for (auto& point : points) {
-        cv::drawMarker(temp, point, FZI_GREEN, cv::MARKER_CROSS, 8, 1);
+        cv::drawMarker(temp, point, FZI_GREEN, cv::MARKER_CROSS, marker_size, thickness);
     }
     ShowImage(temp, "Points");
     return temp;
@@ -57,7 +63,7 @@ cv::Mat DebugVisualizer::ShowClusters(const cv::Mat& img,
         cv::Point median(0, 0);
         for (auto& point : group) {
             median += point;
-            circle(temp, point, 1, FZI_GREEN, 2);
+            circle(temp, point, 1, FZI_GREEN, POINT_THICKNESS);
         }
         median *= 1.0 / group.size();
         double variance = 0.0;
@@ -81,12 +87,12 @@ cv::Mat DebugVisualizer::ShowLandmarkHypotheses(cv::Mat& img, const std::vector<
         line(temp, lm.voCorners[1], lm.voCorners[0], cv::viz::Color::red());
         line(temp, lm.voCorners[1], lm.voCorners[2], cv::viz::Color::red());
         // Corners
-        cv::drawMarker(temp,lm.voCorners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2); // leading corner clockwise (if assumption of rhs is valid)
-        circle(temp, lm.voCorners[1], 3, cv::viz::Color::red(), 2); // middle corner
-        circle(temp, lm.voCorners[2], 3, cv::viz::Color::red(), 2); // following corner clockwise
+        cv::drawMarker(temp, lm.voCorners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2); // leading corner clockwise (if assumption of rhs is valid)
+        circle(temp, lm.voCorners[1], 3, cv::viz::Color::red(), POINT_THICKNESS); // middle corner
+        circle(temp, lm.voCorners[2], 3, cv::viz::Color::red(), POINT_THICKNESS); // following corner clockwise
         // Inner points
         for (auto& imgPoint : lm.voIDPoints) {
-            circle(temp, imgPoint, 1, FZI_GREEN, 2);
+            circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
         }
         cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
                          (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
@@ -104,10 +110,10 @@ void DebugVisualizer::DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>
 
     for (auto& lm : landmarks) {
         for (auto& imgPoint : lm.voCorners) {
-            circle(img, imgPoint, 1, FZI_GREEN, 2);
+            circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
         }
         for (auto& imgPoint : lm.voIDPoints) {
-            circle(img, imgPoint, 1, FZI_GREEN, 2);
+            circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
         }
         cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
                          (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
@@ -118,9 +124,9 @@ void DebugVisualizer::DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>
         std::string text = "ID: ";
         text += std::to_string(lm.nID);
         cv::Point imgPoint = lm.voCorners.front();
-        imgPoint.x += 25;
-        imgPoint.y += 25;
-        putText(img, text, imgPoint, 2, 0.4, cv::viz::Color::black());
+        imgPoint.x += TEXT_OFFSET;
+        imgPoint.y += TEXT_OFFSET;
+        putText(img, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
     }
 }
 
@@ -149,13 +155,13 @@ void DebugVisualizer::DrawLandmarks(cv::Mat& img,
             imgPoint.y = static_cast<int>(y);
 
             /// Corner Points
-            circle(img, imgPoint, 4, FZI_RED, 2);
+            circle(temp, imgPoint, 4, FZI_RED, POINT_THICKNESS);
         }
 
         std::string text = "ID: ";
         text += std::to_string(lm.second.id);
-        imgPoint.x += 25;
-        imgPoint.y += 25;
-        putText(img, text, imgPoint, 2, 0.4, cv::viz::Color::black());
+        imgPoint.x += TEXT_OFFSET;
+        imgPoint.y += TEXT_OFFSET;
+        putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
     }
 }

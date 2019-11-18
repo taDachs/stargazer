@@ -123,6 +123,8 @@ public:
 
 private:
     static const cv::Scalar FZI_BLUE, FZI_GREEN, FZI_RED;
+    static const int TEXT_OFFSET, POINT_THICKNESS;
+    static const double FONT_SCALE;
     int m_wait_time{1};                  /**< Time to wait when displaying image */
     int m_window_mode{CV_WINDOW_NORMAL}; /**< cvWindowProperty */
     cv::Mat baseImg;                     /**< dummy image */
