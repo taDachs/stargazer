@@ -43,42 +43,41 @@ using namespace stargazer;
 
 TEST(ConfigHandler, Read) {
 
-    std::string cam_cfgfile{"res/cam.yaml"};
-    std::string map_cfgfile{"res/map.yaml"};
-    camera_params_t camera_intrinsics;
-    landmark_map_t landmarks;
-    ASSERT_NO_THROW(readCamConfig(cam_cfgfile, camera_intrinsics));
-    ASSERT_NO_THROW(readMapConfig(map_cfgfile, landmarks));
+  std::string cam_cfgfile{"res/cam.yaml"};
+  std::string map_cfgfile{"res/map.yaml"};
+  camera_params_t camera_intrinsics;
+  landmark_map_t landmarks;
+  ASSERT_NO_THROW(readCamConfig(cam_cfgfile, camera_intrinsics));
+  ASSERT_NO_THROW(readMapConfig(map_cfgfile, landmarks));
 
-    ASSERT_EQ(279.082, camera_intrinsics[(int)INTRINSICS::fu]);
-    ASSERT_EQ(279.082, camera_intrinsics[(int)INTRINSICS::fv]);
-    ASSERT_EQ(368.246, camera_intrinsics[(int)INTRINSICS::u0]);
-    ASSERT_EQ(234.506, camera_intrinsics[(int)INTRINSICS::v0]);
+  ASSERT_EQ(279.082, camera_intrinsics[(int)INTRINSICS::fu]);
+  ASSERT_EQ(279.082, camera_intrinsics[(int)INTRINSICS::fv]);
+  ASSERT_EQ(368.246, camera_intrinsics[(int)INTRINSICS::u0]);
+  ASSERT_EQ(234.506, camera_intrinsics[(int)INTRINSICS::v0]);
 
-    ASSERT_EQ(19, landmarks.size());
+  ASSERT_EQ(19, landmarks.size());
 }
 
 TEST(ConfigHandler, Write) {
-    std::string cam_cfgfile{"res/cam.yaml"};
-    std::string map_cfgfile{"res/map.yaml"};
-    camera_params_t camera_intrinsics;
-    landmark_map_t landmarks;
-    ASSERT_NO_THROW(readCamConfig(cam_cfgfile, camera_intrinsics));
-    ASSERT_NO_THROW(readMapConfig(map_cfgfile, landmarks));
+  std::string cam_cfgfile{"res/cam.yaml"};
+  std::string map_cfgfile{"res/map.yaml"};
+  camera_params_t camera_intrinsics;
+  landmark_map_t landmarks;
+  ASSERT_NO_THROW(readCamConfig(cam_cfgfile, camera_intrinsics));
+  ASSERT_NO_THROW(readMapConfig(map_cfgfile, landmarks));
 
-    std::string cam_testfile{"res/cam_test.yaml"};
-    std::string map_testfile{"res/map_test.yaml"};
-    ASSERT_NO_THROW(writeCamConfig(cam_testfile, camera_intrinsics));
-    ASSERT_NO_THROW(writeMapConfig(map_testfile, landmarks));
-    camera_params_t camera_intrinsics_test;
-    landmark_map_t landmarks_test;
-    ASSERT_NO_THROW(readCamConfig(cam_testfile, camera_intrinsics));
-    ASSERT_NO_THROW(readMapConfig(map_testfile, landmarks));
-    ASSERT_EQ(landmarks.size(), landmarks_test.size());
+  std::string cam_testfile{"res/cam_test.yaml"};
+  std::string map_testfile{"res/map_test.yaml"};
+  ASSERT_NO_THROW(writeCamConfig(cam_testfile, camera_intrinsics));
+  ASSERT_NO_THROW(writeMapConfig(map_testfile, landmarks));
+  camera_params_t camera_intrinsics_test;
+  landmark_map_t landmarks_test;
+  ASSERT_NO_THROW(readCamConfig(cam_testfile, camera_intrinsics));
+  ASSERT_NO_THROW(readMapConfig(map_testfile, landmarks));
+  ASSERT_EQ(landmarks.size(), landmarks_test.size());
 }
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

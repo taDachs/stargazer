@@ -17,9 +17,9 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "DebugVisualizer.h"
-#include "CoordinateTransformations.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/viz/types.hpp>
+#include "CoordinateTransformations.h"
 
 using namespace stargazer;
 
@@ -32,133 +32,136 @@ const int DebugVisualizer::TEXT_OFFSET(25);
 const double DebugVisualizer::FONT_SCALE(0.4);
 
 void DebugVisualizer::prepareImg(cv::Mat& img) {
-    if (img.type() == CV_8UC1) {
-        // input image is grayscale
-        cvtColor(img, img, CV_GRAY2RGB);
-    }
+  if (img.type() == CV_8UC1) {
+    // input image is grayscale
+    cvtColor(img, img, CV_GRAY2RGB);
+  }
 }
 
 void DebugVisualizer::ShowImage(const cv::Mat& img, std::string name) {
-    cv::namedWindow(name, m_window_mode);
-    cv::imshow(name, img);
-    cv::waitKey(m_wait_time);
+  cv::namedWindow(name, m_window_mode);
+  cv::imshow(name, img);
+  cv::waitKey(m_wait_time);
 }
 
 cv::Mat DebugVisualizer::DrawPoints(const cv::Mat& img, const std::vector<cv::Point> points) {
-    const int marker_size(8);
-    const int thickness(1);
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    for (auto& point : points) {
-        cv::drawMarker(temp, point, FZI_GREEN, cv::MARKER_CROSS, marker_size, thickness);
-    }
-    return temp;
+  const int marker_size(8);
+  const int thickness(1);
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& point : points) {
+    cv::drawMarker(temp, point, FZI_GREEN, cv::MARKER_CROSS, marker_size, thickness);
+  }
+  return temp;
 }
 
-cv::Mat DebugVisualizer::DrawClusters(const cv::Mat& img, const std::vector<std::vector<cv::Point>> points) {
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    for (auto& group : points) {
-        cv::Point median(0, 0);
-        for (auto& point : group) {
-            median += point;
-            circle(temp, point, 1, FZI_GREEN, POINT_THICKNESS);
-        }
-        median *= 1.0 / group.size();
-        double variance = 0.0;
-        for (auto& point : group) {
-            variance += std::pow(median.x - point.x, 2) + std::pow(median.y - point.y, 2);
-        }
-        variance /= (group.size());
-        int radius = static_cast<int>(2 * sqrt(variance));
-
-        circle(temp, median, radius, FZI_BLUE, 2);
+cv::Mat DebugVisualizer::DrawClusters(const cv::Mat& img,
+                                      const std::vector<std::vector<cv::Point>> points) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& group : points) {
+    cv::Point median(0, 0);
+    for (auto& point : group) {
+      median += point;
+      circle(temp, point, 1, FZI_GREEN, POINT_THICKNESS);
     }
-    return temp;
+    median *= 1.0 / group.size();
+    double variance = 0.0;
+    for (auto& point : group) {
+      variance += std::pow(median.x - point.x, 2) + std::pow(median.y - point.y, 2);
+    }
+    variance /= (group.size());
+    int radius = static_cast<int>(2 * sqrt(variance));
+
+    circle(temp, median, radius, FZI_BLUE, 2);
+  }
+  return temp;
 }
 
-cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    for (auto& lm : landmarks) {
-        // Secants
-        line(temp, lm.voCorners[1], lm.voCorners[0], cv::viz::Color::red());
-        line(temp, lm.voCorners[1], lm.voCorners[2], cv::viz::Color::red());
-        // Corners
-        cv::drawMarker(temp, lm.voCorners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2); // leading corner clockwise (if assumption of rhs is valid)
-        circle(temp, lm.voCorners[1], 3, cv::viz::Color::red(), POINT_THICKNESS); // middle corner
-        circle(temp, lm.voCorners[2], 3, cv::viz::Color::red(), POINT_THICKNESS); // following corner clockwise
-        // Inner points
-        for (auto& imgPoint : lm.voIDPoints) {
-            circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
-        }
-        cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
-                         (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
-        double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
-                             pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
-        circle(img, median, radius, FZI_BLUE, 2);
-
-        //Landmarks have no ID yet
+cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img,
+                                                const std::vector<ImgLandmark>& landmarks) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& lm : landmarks) {
+    // Secants
+    line(temp, lm.voCorners[1], lm.voCorners[0], cv::viz::Color::red());
+    line(temp, lm.voCorners[1], lm.voCorners[2], cv::viz::Color::red());
+    // Corners
+    cv::drawMarker(temp, lm.voCorners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2);  // leading corner clockwise (if assumption of rhs is valid)
+    circle(temp, lm.voCorners[1], 3, cv::viz::Color::red(), POINT_THICKNESS);  // middle corner
+    circle(temp, lm.voCorners[2], 3, cv::viz::Color::red(), POINT_THICKNESS);  // following corner clockwise
+    // Inner points
+    for (auto& imgPoint : lm.voIDPoints) {
+      circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
-    return temp;
+    cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
+                     (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
+    double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
+                         pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
+    circle(img, median, radius, FZI_BLUE, 2);
+
+    // Landmarks have no ID yet
+  }
+  return temp;
 }
 
-cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    for (auto& lm : landmarks) {
-        for (auto& imgPoint : lm.voCorners) {
-            circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
-        }
-        for (auto& imgPoint : lm.voIDPoints) {
-            circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
-        }
-        cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
-                         (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
-        double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
-                             pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
-        circle(img, median, radius, FZI_BLUE, 2);
-
-        std::string text = "ID: ";
-        text += std::to_string(lm.nID);
-        cv::Point imgPoint = lm.voCorners.front();
-        imgPoint.x += TEXT_OFFSET;
-        imgPoint.y += TEXT_OFFSET;
-        putText(img, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
+                                       const std::vector<ImgLandmark>& landmarks) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& lm : landmarks) {
+    for (auto& imgPoint : lm.voCorners) {
+      circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
-    return temp;
+    for (auto& imgPoint : lm.voIDPoints) {
+      circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
+    }
+    cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
+                     (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
+    double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
+                         pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
+    circle(img, median, radius, FZI_BLUE, 2);
+
+    std::string text = "ID: ";
+    text += std::to_string(lm.nID);
+    cv::Point imgPoint = lm.voCorners.front();
+    imgPoint.x += TEXT_OFFSET;
+    imgPoint.y += TEXT_OFFSET;
+    putText(img, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+  }
+  return temp;
 }
 
 cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
                                        const landmark_map_t& landmarks,
                                        const camera_params_t& camera_intrinsics,
                                        const pose_t& ego_pose) {
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    cv::Point imgPoint;
-    for (auto& lm : landmarks) {
-        for (auto& pt : lm.second.points) {
-            // Convert point into camera frame
-            double x, y;
-            transformWorldToImg(pt[static_cast<int>(POINT::X)],
-                                pt[static_cast<int>(POINT::Y)],
-                                pt[static_cast<int>(POINT::Z)],
-                                ego_pose.data(),
-                                camera_intrinsics.data(),
-                                &x,
-                                &y);
-            imgPoint.x = static_cast<int>(x);
-            imgPoint.y = static_cast<int>(y);
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  cv::Point imgPoint;
+  for (auto& lm : landmarks) {
+    for (auto& pt : lm.second.points) {
+      // Convert point into camera frame
+      double x, y;
+      transformWorldToImg(pt[static_cast<int>(POINT::X)],
+                          pt[static_cast<int>(POINT::Y)],
+                          pt[static_cast<int>(POINT::Z)],
+                          ego_pose.data(),
+                          camera_intrinsics.data(),
+                          &x,
+                          &y);
+      imgPoint.x = static_cast<int>(x);
+      imgPoint.y = static_cast<int>(y);
 
-            /// Corner Points
-            circle(temp, imgPoint, 4, FZI_RED, POINT_THICKNESS);
-        }
-
-        std::string text = "ID: ";
-        text += std::to_string(lm.second.id);
-        imgPoint.x += TEXT_OFFSET;
-        imgPoint.y += TEXT_OFFSET;
-        putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+      /// Corner Points
+      circle(temp, imgPoint, 4, FZI_RED, POINT_THICKNESS);
     }
-    return temp;
+
+    std::string text = "ID: ";
+    text += std::to_string(lm.second.id);
+    imgPoint.x += TEXT_OFFSET;
+    imgPoint.y += TEXT_OFFSET;
+    putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+  }
+  return temp;
 }

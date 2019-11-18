@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <string>
 #include <ceres/ceres.h>
+#include <string>
 #include "CoordinateTransformations.h"
 #include "Localizer.h"
 
@@ -34,64 +34,64 @@ namespace stargazer {
  */
 class CeresLocalizer : public Localizer {
 
-public:
-    /**
-     * @brief Constructor.
-     *
-     * @param cfgfile Path to map file with camera intrinsics and landmark poses.
-     * @param estimae_2d_pose whether the whole 3d pose shall be estimatet or just the 2d pose.
-     * @remark The config file has to be generated with ::writeConfig!
-     * @remark The CeresLocalizer converts all landmark points into world coordinates after readin!
-     */
-    CeresLocalizer(const std::string& cam_cfgfile, const std::string& map_cfgfile, bool estimate_2d_pose = false);
+ public:
+  /**
+   * @brief Constructor.
+   *
+   * @param cfgfile Path to map file with camera intrinsics and landmark poses.
+   * @param estimae_2d_pose whether the whole 3d pose shall be estimatet or just the 2d pose.
+   * @remark The config file has to be generated with ::writeConfig!
+   * @remark The CeresLocalizer converts all landmark points into world coordinates after readin!
+   */
+  CeresLocalizer(const std::string& cam_cfgfile,
+                 const std::string& map_cfgfile,
+                 bool estimate_2d_pose = false);
 
-    /**
-     * @brief Main update method. Computes pose from landmark observations and stores it in Localizer::ego_pose
-     *
-     * @param img_landmarks Vector of all observed landmarks in image coordinates
-     * @param dt Time since last update (unused in this implementation)
-     */
-    virtual void UpdatePose(std::vector<ImgLandmark>& img_landmarks, float dt) override;
+  /**
+   * @brief Main update method. Computes pose from landmark observations and stores it in Localizer::ego_pose
+   *
+   * @param img_landmarks Vector of all observed landmarks in image coordinates
+   * @param dt Time since last update (unused in this implementation)
+   */
+  virtual void UpdatePose(std::vector<ImgLandmark>& img_landmarks, float dt) override;
 
-    /**
-     * @brief Returns the full summary of the ceres optimization process. It contains all relevant information for
-     * debugging.
-     *
-     * @return const ceres::Solver::Summary
-     */
-    const ceres::Solver::Summary& getSummary() const {
-        return summary;
-    }
+  /**
+   * @brief Returns the full summary of the ceres optimization process. It
+   * contains all relevant information for debugging.
+   *
+   * @return const ceres::Solver::Summary
+   */
+  const ceres::Solver::Summary& getSummary() const { return summary; }
 
-private:
-    ceres::Problem problem;         /**< Ceres Prolem */
-    ceres::Solver::Summary summary; /**< Summary of last optimization run */
+ private:
+  ceres::Problem problem;         /**< Ceres Prolem */
+  ceres::Solver::Summary summary; /**< Summary of last optimization run */
 
-    bool is_initialized; /**< Flag indicating whether the pose is initialized */
+  bool is_initialized; /**< Flag indicating whether the pose is initialized */
 
-    bool estimate_2d_pose = false;
+  bool estimate_2d_pose = false;
 
-    /**
-     * @brief Will remove the residuals from last run.
-     *
-     */
-    void ClearResidualBlocks();
-    /**
-     * @brief   Will add a new residual block for every marker of every landmark given in img_landmarks
-     *
-     * @param img_landmarks Vector of observerved landmarks.
-     */
-    void AddResidualBlocks(std::vector<ImgLandmark> img_landmarks);
-    /**
-     * @brief Will set the camera parameters constant, so that they do not get changed during optimization.
-     *
-     */
-    void SetCameraParamsConstant();
-    /**
-     * @brief This is the actual working method, that sets the ceres configuration and runs to solver.
-     *
-     */
-    void Optimize();
+  /**
+   * @brief Will remove the residuals from last run.
+   *
+   */
+  void ClearResidualBlocks();
+  /**
+   * @brief   Will add a new residual block for every marker of every landmark given in img_landmarks
+   *
+   * @param img_landmarks Vector of observerved landmarks.
+   */
+  void AddResidualBlocks(std::vector<ImgLandmark> img_landmarks);
+  /**
+   * @brief Will set the camera parameters constant, so that they do not get changed during optimization.
+   *
+   */
+  void SetCameraParamsConstant();
+  /**
+   * @brief This is the actual working method, that sets the ceres configuration and runs to solver.
+   *
+   */
+  void Optimize();
 };
 
-} /// namespace stargazer
+}  // namespace stargazer
