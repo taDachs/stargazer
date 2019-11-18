@@ -137,16 +137,12 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
     prepareImg(temp);
     cv::Point imgPoint;
     for (auto& lm : landmarks) {
-        for (size_t i = 0; i < lm.second.points.size(); i++) {
-            auto& pt = lm.second.points[i];
-
+        for (auto& pt : lm.second.points) {
             // Convert point into camera frame
-            double x = 0.0;
-            double y = 0.0;
-
-            transformWorldToImg(pt[(int)POINT::X],
-                                pt[(int)POINT::Y],
-                                pt[(int)POINT::Z],
+            double x, y;
+            transformWorldToImg(pt[static_cast<int>(POINT::X)],
+                                pt[static_cast<int>(POINT::Y)],
+                                pt[static_cast<int>(POINT::Z)],
                                 ego_pose.data(),
                                 camera_intrinsics.data(),
                                 &x,
