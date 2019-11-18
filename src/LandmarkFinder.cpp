@@ -398,11 +398,10 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark, std::vector<uint1
         nX = std::clamp(nY, 0, 3);
         nY = std::clamp(nY, 0, 3);
 
-        /// the binary values ar coded: x steps are binary shifts within 4 bit
-        /// blocks
-        ///                             y steps are binary shifts of 4 bit blocks
-        ///                             see http://hagisonic.com/ for more
-        ///                             information on this
+        /// the binary values ar coded:
+        /// x steps are binary shifts within 4 bit blocks
+        /// y steps are binary shifts of 4 bit blocks
+        /// see http://hagisonic.com/ for more information on this
         uint16_t ThisPointID = static_cast<uint16_t>((1 << nX) << 4 * nY);
         pPointsIDs.push_back(ThisPointID);
 
