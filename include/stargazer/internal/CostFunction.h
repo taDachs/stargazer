@@ -18,10 +18,10 @@
 
 #pragma once
 
-// Ceres includes
+#include "ceres/ceres.h"
+
 #include "../CoordinateTransformations.h"
 #include "../StargazerTypes.h"
-#include "ceres/ceres.h"
 
 namespace stargazer {
 

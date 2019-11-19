@@ -19,8 +19,10 @@
 #pragma once
 
 #include <vector>
+
+#include <opencv2/core/types.hpp>
+
 #include "StargazerTypes.h"
-#include "opencv/cv.h"
 
 namespace stargazer {
 

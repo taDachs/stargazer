@@ -18,11 +18,12 @@
 
 #pragma once
 
-#include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
+
+#include <yaml-cpp/yaml.h>
 
 #include "StargazerTypes.h"
 

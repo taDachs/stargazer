@@ -18,12 +18,14 @@
 
 #pragma once
 
+#include <map>
+#include <vector>
+
+#include <ceres/ceres.h>
+
 #include "CoordinateTransformations.h"
 #include "StargazerImgTypes.h"
 
-#include <ceres/ceres.h>
-#include <map>
-#include <vector>
 namespace stargazer {
 
 /**

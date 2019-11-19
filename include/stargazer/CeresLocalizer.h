@@ -18,8 +18,10 @@
 
 #pragma once
 
-#include <ceres/ceres.h>
 #include <string>
+
+#include <ceres/ceres.h>
+
 #include "CoordinateTransformations.h"
 #include "Localizer.h"
 

@@ -18,8 +18,10 @@
 
 #pragma once
 
-#include <ceres/rotation.h>
 #include <iostream>
+
+#include <ceres/rotation.h>
+
 #include "StargazerTypes.h"
 
 namespace stargazer {

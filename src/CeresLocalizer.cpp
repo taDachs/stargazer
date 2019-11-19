@@ -17,8 +17,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "CeresLocalizer.h"
+
 #include <ceres/ceres.h>
-#include <opencv/highgui.h>
 
 #include "internal/CostFunction.h"
 

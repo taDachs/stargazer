@@ -18,18 +18,13 @@
 
 #pragma once
 
+#include <vector>
+
+#include <opencv2/features2d.hpp>
+
 #include "StargazerConfig.h"
 #include "StargazerImgTypes.h"
 #include "StargazerTypes.h"
-
-#include <boost/lexical_cast.hpp>
-#include <fstream>
-#include <iostream>
-#include <opencv2/features2d.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include "iostream"
-#include "math.h"
-#include "vector"
 
 namespace stargazer {
 

@@ -17,9 +17,11 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "LandmarkFinder.h"
+
 #include <algorithm>
-#include <boost/range/adaptor/reversed.hpp>
 #include <limits>
+
+#include <boost/range/adaptor/reversed.hpp>
 
 using namespace std;
 using namespace stargazer;
