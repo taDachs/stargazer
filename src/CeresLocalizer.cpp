@@ -18,6 +18,8 @@
 
 #include "CeresLocalizer.h"
 
+#include <limits>
+
 #include <ceres/ceres.h>
 
 #include "internal/CostFunction.h"
@@ -29,6 +31,8 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
                                bool estimate_2d_pose)
     : Localizer(cam_cfgfile, map_cfgfile), estimate_2d_pose(estimate_2d_pose) {
 
+  double z_upper_bound = std::numeric_limits<double>::max();
+
   // Convert landmark points to worldcoordinates once.
   for (auto& el : landmarks) {
     for (auto& pt : el.second.points) {
@@ -36,9 +40,13 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
       transformLandMarkToWorld(
           pt[(int)POINT::X], pt[(int)POINT::Y], el.second.pose.data(), &x, &y, &z);
       pt = {x, y, z};
+      z_upper_bound = std::min(z_upper_bound, z);
     }
   }
 
+  // Prevents local minimum with all points behind camera (allowed by camera model)
+  // Assumes that camera is approximately looking into positive z direction (map)
+  problem.SetParameterUpperBound(ego_pose.data(), (int)POSE::Z, z_upper_bound);
   is_initialized = false;
 }
 
