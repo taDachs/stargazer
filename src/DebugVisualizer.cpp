@@ -100,7 +100,7 @@ cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img,
                      (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
     double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
                          pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
-    circle(img, median, radius, FZI_BLUE, 2);
+    circle(temp, median, radius, FZI_BLUE, 2);
 
     // Landmarks have no ID yet
   }
@@ -113,23 +113,23 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
   prepareImg(temp);
   for (auto& lm : landmarks) {
     for (auto& imgPoint : lm.voCorners) {
-      circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
+      circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
     for (auto& imgPoint : lm.voIDPoints) {
-      circle(img, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
+      circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
     cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
                      (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
     double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
                          pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
-    circle(img, median, radius, FZI_BLUE, 2);
+    circle(temp, median, radius, FZI_BLUE, 2);
 
     std::string text = "ID: ";
     text += std::to_string(lm.nID);
     cv::Point imgPoint = lm.voCorners.front();
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
-    putText(img, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+    putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
   }
   return temp;
 }

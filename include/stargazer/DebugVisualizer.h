@@ -70,6 +70,8 @@ class DebugVisualizer {
    */
   void SetWindowMode(int mode) { m_window_mode = mode; }
 
+  //TODO const cv::Mat& img, does not garantuee that img is actually constant (opencv pitfall)
+
   /**
    * @brief Draws the vector of points given.
    *
