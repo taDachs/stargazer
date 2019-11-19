@@ -29,6 +29,8 @@ const cv::Scalar DebugVisualizer::FZI_BLUE(163, 101, 0);
 const cv::Scalar DebugVisualizer::FZI_GREEN(73, 119, 0);
 const cv::Scalar DebugVisualizer::FZI_RED(39, 157, 236);
 
+const int DebugVisualizer::POINT_RADIUS_IMG(1);
+const int DebugVisualizer::POINT_RADIUS_MAP(4);
 const int DebugVisualizer::POINT_THICKNESS(2);
 const int DebugVisualizer::TEXT_OFFSET(25);
 const double DebugVisualizer::FONT_SCALE(0.4);
@@ -65,7 +67,7 @@ cv::Mat DebugVisualizer::DrawClusters(const cv::Mat& img,
     cv::Point median(0, 0);
     for (auto& point : group) {
       median += point;
-      circle(temp, point, 1, FZI_GREEN, POINT_THICKNESS);
+      circle(temp, point, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
     median *= 1.0 / group.size();
     double variance = 0.0;
@@ -113,10 +115,10 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
   prepareImg(temp);
   for (auto& lm : landmarks) {
     for (auto& imgPoint : lm.voCorners) {
-      circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
+      circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
     for (auto& imgPoint : lm.voIDPoints) {
-      circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
+      circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
     cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
                      (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
@@ -156,7 +158,7 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
       imgPoint.y = static_cast<int>(y);
 
       /// Corner Points
-      circle(temp, imgPoint, 4, FZI_RED, POINT_THICKNESS);
+      circle(temp, imgPoint, POINT_RADIUS_MAP, FZI_RED, POINT_THICKNESS);
     }
 
     std::string text = "ID: ";

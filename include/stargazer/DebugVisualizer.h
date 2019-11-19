@@ -123,7 +123,7 @@ class DebugVisualizer {
 
  private:
   static const cv::Scalar FZI_BLUE, FZI_GREEN, FZI_RED;
-  static const int TEXT_OFFSET, POINT_THICKNESS;
+  static const int TEXT_OFFSET, POINT_THICKNESS, POINT_RADIUS_IMG, POINT_RADIUS_MAP;
   static const double FONT_SCALE;
   int m_wait_time{1}; /**< Time to wait when displaying image */
   int m_window_mode{CV_WINDOW_NORMAL}; /**< cvWindowProperty */
