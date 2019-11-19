@@ -23,7 +23,6 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
-using namespace std;
 using namespace stargazer;
 
 ///--------------------------------------------------------------------------------------///
