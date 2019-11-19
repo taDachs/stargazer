@@ -36,42 +36,37 @@ enum struct POSE { X, Y, Z, Rx, Ry, Rz, N_PARAMS };
 enum struct INTRINSICS { fu, fv, u0, v0, N_PARAMS };
 
 /**
- * @brief   Definition of the three position parmaters of a point
+ * @brief Definition of the three position parmaters of a point
  *
  */
 enum struct POINT { X, Y, Z, N_PARAMS };
 
 /**
- * @brief   A point is a 3D translation-only position. See ::POINT for the indexing scheme.
- *
+ * @brief A point is a 3D translation-only position. See ::POINT for the indexing scheme.
  */
 typedef std::array<double, (int)POINT::N_PARAMS> Point;
 
 /**
- * @brief   This object hold the camera parameters. See ::INTRINSICS for the indexing scheme.
+ * @brief This object hold the camera parameters. See ::INTRINSICS for the indexing scheme.
  */
 typedef std::array<double, (int)INTRINSICS::N_PARAMS> camera_params_t;
 
 /**
- * @brief   This object hold the parameters of a translation and orientation
- * pose. See ::POSE for the indexing scheme.
- *
+ * @brief This object hold the parameters of a translation and orientation pose. See ::POSE for the indexing scheme.
  */
 typedef std::array<double, (int)POSE::N_PARAMS> pose_t;
 
 /**
  * @brief Point generator function for a given ID.
  *
- * @param ID    Landmark ID
- * @return std::vector<Point> List of points in landmark coordinates. The first
- * three are the three corner points.
+ * @param ID Landmark ID
+ * @return std::vector<Point> List of points in landmark coordinates. The first three are the three corner points.
  */
 std::vector<Point> getLandmarkPoints(int ID);  // Forward declaration
 
 /**
  * @brief This class resembles a map landmark. After construction with the id,
  * the landmark holds its marker points in landmark coordinates.
- *
  */
 struct Landmark {
   ///--------------------------------------------------------------------------------------///
@@ -83,12 +78,12 @@ struct Landmark {
   /*  Numbering of corners and coordinate frame
    *  The origin of the landmark lies within Corner 1.
    *       ---> y'
-   *  |   o   .   .   .
+   *  |   o   .   .
    *  |   .   .   .   .
    *  V   .   .   .   .
    *  x'  o   .   .   o
    *
-   * The id of points
+   * The id of points (bit position)
    *      0   4   8   12
    *      1   5   9   13
    *      2   6   10  14
@@ -107,10 +102,9 @@ struct Landmark {
   int id; /**< The landmarks id */
   std::array<double, (int)POSE::N_PARAMS> pose = {{0., 0., 0., 0., 0., 0.}}; /**< The landmarks pose */
   std::vector<Point> points; /**< Vector of landmark points. The first three are the corners */
-  static constexpr int kGridCount = 4; /**< Defines how many rows and columns the landmark has */
+  static constexpr int kGridCount = 4; /**< Number of rows and columns of a landmark */
   static constexpr double kGridDistance =
-      0.08; /**< Defines the distance between two landmark LEDs in meters. This
-               is important for esimating the scale. */
+      0.08; /**< Distance between two adjacent landmark LEDs in meters */
 };
 
 inline std::vector<Point> getLandmarkPoints(int ID) {
@@ -145,7 +139,6 @@ inline std::vector<Point> getLandmarkPoints(int ID) {
 
 /**
  * @brief This class resembles the map representation. It hold a map of all known landmarks.
- *
  */
 typedef std::map<int, Landmark> landmark_map_t;
 
