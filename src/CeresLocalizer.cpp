@@ -29,9 +29,9 @@ using namespace stargazer;
 CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
                                const std::string& map_cfgfile,
                                bool estimate_2d_pose)
-    : Localizer(cam_cfgfile, map_cfgfile), estimate_2d_pose(estimate_2d_pose) {
-
-  double z_upper_bound = std::numeric_limits<double>::max();
+    : Localizer(cam_cfgfile, map_cfgfile),
+      estimate_2d_pose(estimate_2d_pose),
+      z_upper_bound(std::numeric_limits<double>::max()) {
 
   // Convert landmark points to worldcoordinates once.
   for (auto& el : landmarks) {
@@ -44,9 +44,6 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
     }
   }
 
-  // Prevents local minimum with all points behind camera (allowed by camera model)
-  // Assumes that camera is approximately looking into positive z direction (map)
-  problem.SetParameterUpperBound(ego_pose.data(), (int)POSE::Z, z_upper_bound);
   is_initialized = false;
 }
 
@@ -71,6 +68,10 @@ void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float d
 
   // Add new data
   AddResidualBlocks(img_landmarks);
+
+  // Prevents local minimum with all points behind camera (allowed by camera model)
+  // Assumes that camera is approximately looking into positive z direction (map)
+  problem.SetParameterUpperBound(ego_pose.data(), (int)POSE::Z, z_upper_bound);
 
   // Optimize
   Optimize();

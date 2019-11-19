@@ -73,6 +73,8 @@ class CeresLocalizer : public Localizer {
 
   bool estimate_2d_pose = false;
 
+  double z_upper_bound;
+
   /**
    * @brief Will remove the residuals from last run.
    *
