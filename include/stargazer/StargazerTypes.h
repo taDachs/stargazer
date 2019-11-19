@@ -25,8 +25,6 @@
 
 namespace stargazer {
 
-using std::pow;
-
 /**
  * @brief Definition of the six pose parameters. The rotation angles are given as rodriguez angles
  *
@@ -117,56 +115,32 @@ struct Landmark {
                is important for esimating the scale. */
 };
 
-/**
- * @brief Computes x^p assuring, to return an int
- *
- * @param x Base
- * @param p Exponent
- * @return int Result
- */
-inline int pow(int x, int p) {
-  if (p == 0)
-    return 1;
-  if (p == 1)
-    return x;
-  return x * pow(x, p - 1);
-}
-
 inline std::vector<Point> getLandmarkPoints(int ID) {
   std::vector<Point> points;
 
   // Add corner points
-  Point pt1 = {0 * Landmark::kGridDistance, 0 * Landmark::kGridDistance, 0};
-  Point pt3 = {3 * Landmark::kGridDistance, 0 * Landmark::kGridDistance, 0};
-  Point pt15 = {3 * Landmark::kGridDistance, 3 * Landmark::kGridDistance, 0};
-  points.push_back(pt1);
-  points.push_back(pt3);
-  points.push_back(pt15);
+  const double lc(Landmark::kGridCount - 1);
+  points.push_back({0., 0., 0.});
+  points.push_back({lc, 0., 0.});
+  points.push_back({lc, lc, 0.});
 
-  /// Add ID points
-  int col = 0;
+  // Add ID points
   for (int y = 0; y < Landmark::kGridCount; y++)  // For every column
   {
-    /* StarLandmark IDs are coded:
-     * the binary values ar coded:  x steps are binary shifts within 4 bit
-     * blocks y steps are binary shifts of 4 bit blocks
-     */
-
-    // Modulo 16^(i+1) tells us how much this row contributed to the ID
-    col = (ID % pow(pow(Landmark::kGridCount, 2), y + 1));
-    col /= pow(pow(Landmark::kGridCount, 2), y);
-    ID -= col;
-    // Convert to binary
     for (int x = 0; x < Landmark::kGridCount; x++) {  // For every row
-      if (col % 2 != 0) {  // Modulo 2 effectively converts the number to binary.
-        // If this returns 1, we have a point
-        // Point found
-        // int id = y * Landmark::kGridCount + x;
-        Point pt = {x * Landmark::kGridDistance, y * Landmark::kGridDistance, 0};
-        points.push_back(pt);
+      /* StarLandmark IDs are coded: (here 4x4 grid)
+       * x steps are binary shifts by 1
+       * y steps are binary shifts by 4
+       */
+      if ((ID >> (Landmark::kGridCount * y + x)) & 1) {
+        points.push_back({(double)x, (double)y, 0.});
       }
-      col /= 2;
     }
+  }
+  // Apply landmark scale
+  for (Point& p : points) {
+    p[(int)POINT::X] *= Landmark::kGridDistance;
+    p[(int)POINT::Y] *= Landmark::kGridDistance;
   }
   return points;
 }
