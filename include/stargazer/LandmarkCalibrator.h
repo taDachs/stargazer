@@ -60,22 +60,6 @@ class LandmarkCalibrator {
   void Optimize();
 
   /**
-   * @brief Sets an individual landmarks pose constant. This is usefull, for
-   * fixing the maps coordinate system to one landmark.
-   *
-   * @param id    Id of the landmark to hold constant.
-   */
-  void SetLandmarkConstant(landmark_map_t::key_type id);
-
-  /**
-   * @brief Sets an individual camera pose constant. This is usefull, for fixing
-   * the maps coordinate system to one pose (normally the first).
-   *
-   * @param id
-   */
-  void SetPoseConstant(size_t id);
-
-  /**
    * @brief Sets the camera intrinsics constant. Useful if the camera calibration is already done.
    */
   void SetIntrinsicsConstant();

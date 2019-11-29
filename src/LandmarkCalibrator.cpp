@@ -144,22 +144,6 @@ void LandmarkCalibrator::SetIntrinsicsConstant() {
   }
 }
 
-void LandmarkCalibrator::SetLandmarkConstant(landmark_map_t::key_type id) {
-  if (problem.HasParameterBlock(landmarks_[id].pose.data()))
-    problem.SetParameterBlockConstant(landmarks_[id].pose.data());
-  else
-    throw std::runtime_error(
-        "No parameter used of landmark that should get fixed");
-}
-
-void LandmarkCalibrator::SetPoseConstant(size_t id) {
-  if (problem.HasParameterBlock(camera_poses_[id].data()))
-    problem.SetParameterBlockConstant(camera_poses_[id].data());
-  else
-    throw std::runtime_error(
-        "No parameter used of landmark that should get fixed");
-}
-
 void LandmarkCalibrator::ClearProblem() {
   std::vector<ceres::ResidualBlockId> residual_blocks;
   problem.GetResidualBlocks(&residual_blocks);
