@@ -118,6 +118,12 @@ void LandmarkCalibrator::Optimize() {
   std::cout << summary.FullReport() << std::endl;
 }
 
+void LandmarkCalibrator::SetIntrinsicsConstant() {
+  if (problem.HasParameterBlock(camera_intrinsics_.data())) {
+    problem.SetParameterBlockConstant(camera_intrinsics_.data());
+  }
+}
+
 void LandmarkCalibrator::SetLandmarkConstant(landmark_map_t::key_type id) {
   if (problem.HasParameterBlock(landmarks_[id].pose.data()))
     problem.SetParameterBlockConstant(landmarks_[id].pose.data());

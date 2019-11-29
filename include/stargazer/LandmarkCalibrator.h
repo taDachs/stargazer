@@ -81,6 +81,11 @@ class LandmarkCalibrator {
   void SetPoseConstant(size_t id);
 
   /**
+   * @brief Sets the camera intrinsics constant. Useful if the camera calibration is already done.
+   */
+  void SetIntrinsicsConstant();
+
+  /**
    * @brief Removes all parameter and residual blocks from the problem. So that
    * one can start from scratch.
    *
