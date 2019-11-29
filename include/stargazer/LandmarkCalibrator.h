@@ -60,11 +60,6 @@ class LandmarkCalibrator {
   void Optimize();
 
   /**
-   * @brief Sets some of the parameters constant. (Unused, debugging only)
-   */
-  void SetParametersConstant();
-
-  /**
    * @brief Sets an individual landmarks pose constant. This is usefull, for
    * fixing the maps coordinate system to one landmark.
    *

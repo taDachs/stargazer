@@ -140,37 +140,6 @@ void LandmarkCalibrator::SetPoseConstant(size_t id) {
         "No parameter used of landmark that should get fixed");
 }
 
-void LandmarkCalibrator::SetParametersConstant() {
-  std::vector<double*> parameter_blocks;
-  problem.GetParameterBlocks(&parameter_blocks);
-
-  // Set Landmark rotation parameters constant
-  std::vector<int> constant_landmark_params = {(int)POSE::Rx, (int)POSE::Ry, (int)POSE::Rz};
-  //    ceres::SubsetParameterization* constant_landmark_params_mask =
-  //        new ceres::SubsetParameterization((int)POSE::N_PARAMS, constant_landmark_params);
-  for (auto& lm : landmarks_) {
-    if (problem.HasParameterBlock(lm.second.pose.data()))
-      //            problem.SetParameterization(lm.second.pose.data(),
-      //            constant_landmark_params_mask);
-      problem.SetParameterBlockConstant(lm.second.pose.data());
-  }
-
-  // Set some pose parameters constant
-  std::vector<int> constant_vehicle_params = {(int)POSE::Z, (int)POSE::Rx, (int)POSE::Ry};
-  //    ceres::SubsetParameterization* constant_vehicle_params_mask =
-  //        new ceres::SubsetParameterization((int)POSE::N_PARAMS, constant_vehicle_params);
-  for (auto& pose : camera_poses_) {
-    if (problem.HasParameterBlock(pose.data()))
-      //            problem.SetParameterization(pose.data(), constant_vehicle_params_mask);
-      problem.SetParameterBlockConstant(pose.data());
-  }
-
-  //    // Set Camera Parameters Constant
-  // Set Landmark rotation parameters constant
-  //    if (problem.HasParameterBlock(camera_intrinsics_.data()))
-  //        problem.SetParameterBlockConstant(camera_intrinsics_.data());
-}
-
 void LandmarkCalibrator::ClearProblem() {
   std::vector<ceres::ResidualBlockId> residual_blocks;
   problem.GetResidualBlocks(&residual_blocks);
