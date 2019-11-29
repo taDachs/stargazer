@@ -88,6 +88,15 @@ class LandmarkCalibrator {
   void ClearProblem();
 
   /**
+   * @brief Sets two poses of two individual landmarks partially constant (0). This is useful, for
+   * fixing the maps coordinate system in a robust way.
+   *
+   * @param id_origin   Id of the landmark to set x and y to zero.
+   * @param id_xaxis    Id of the landmark to set y to zero.
+   */
+  void SetLandmarksOriginAndXAxis(landmark_map_t::key_type id_origin, landmark_map_t::key_type id_xaxis);
+
+  /**
    * @brief Getter for the cameras' optimized intrinsic parameters
    *
    * @return const camera_params_t

@@ -118,6 +118,26 @@ void LandmarkCalibrator::Optimize() {
   std::cout << summary.FullReport() << std::endl;
 }
 
+void LandmarkCalibrator::SetLandmarksOriginAndXAxis(landmark_map_t::key_type id_origin,
+                                                    landmark_map_t::key_type id_xaxis) {
+  if (problem.HasParameterBlock(landmarks_[id_origin].pose.data())) {
+    problem.SetParameterization(landmarks_[id_origin].pose.data(),
+                                new ceres::SubsetParameterization(
+                                    (int)POSE::N_PARAMS, {{(int)POSE::X, (int)POSE::Y}}));
+    landmarks_[id_origin].pose[(int)POSE::X] = 0.0;
+    landmarks_[id_origin].pose[(int)POSE::Y] = 0.0;
+  } else {
+    throw std::runtime_error(
+        "No parameter used of landmark that should get fixed");
+  }
+
+  if (problem.HasParameterBlock(landmarks_[id_xaxis].pose.data()))
+    problem.SetParameterization(
+        landmarks_[id_xaxis].pose.data(),
+        new ceres::SubsetParameterization((int)POSE::N_PARAMS, {{(int)POSE::Y}}));
+  landmarks_[id_xaxis].pose[(int)POSE::Y] = 0.0;
+}
+
 void LandmarkCalibrator::SetIntrinsicsConstant() {
   if (problem.HasParameterBlock(camera_intrinsics_.data())) {
     problem.SetParameterBlockConstant(camera_intrinsics_.data());
