@@ -128,12 +128,15 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
                          pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
     circle(temp, median, radius, FZI_BLUE, 2);
 
-    std::stringstream textstream;
-    textstream << "ID: " << std::hex << std::showbase << lm.nID;
     cv::Point imgPoint = lm.voCorners.front();
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
-    putText(temp, textstream.str(), imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+    putText(temp,
+            getIDstring(lm.nID),
+            imgPoint,
+            cv::FONT_HERSHEY_DUPLEX,
+            FONT_SCALE,
+            cv::viz::Color::black());
   }
   return temp;
 }
@@ -152,12 +155,15 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
       circle(temp, imgPoint, POINT_RADIUS_MAP, FZI_RED, POINT_THICKNESS);
     }
 
-    std::stringstream textstream;
-    textstream << "ID: " << std::hex << std::showbase << lm.second.id;
     transformWorldToImgCv(lm.second.points.front(), camera_intrinsics, ego_pose, imgPoint);
     imgPoint.x += TEXT_OFFSET;
-    imgPoint.y += TEXT_OFFSET;
-    putText(temp, textstream.str(), imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+    imgPoint.y += TEXT_OFFSET - 28. * FONT_SCALE;
+    putText(temp,
+            getIDstring(lm.second.id),
+            imgPoint,
+            cv::FONT_HERSHEY_DUPLEX,
+            FONT_SCALE,
+            cv::viz::Color::black());
   }
   return temp;
 }
@@ -176,4 +182,11 @@ void DebugVisualizer::transformWorldToImgCv(const Point& p,
                       &y);
   p_img.x = static_cast<int>(x);
   p_img.y = static_cast<int>(y);
+}
+
+std::string DebugVisualizer::getIDstring(int id) {
+  std::stringstream textstream;
+  textstream << "ID: " << std::showbase << std::internal << std::setfill('0')
+             << std::setw(6) << std::hex << id;
+  return textstream.str();
 }

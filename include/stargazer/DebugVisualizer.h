@@ -144,6 +144,7 @@ class DebugVisualizer {
                              const camera_params_t& camera_intrinsics,
                              const pose_t& ego_pos,
                              cv::Point& p_img);
+  std::string getIDstring(int);
 };
 
 }  // namespace stargazer
