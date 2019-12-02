@@ -18,6 +18,8 @@
 
 #include "DebugVisualizer.h"
 
+#include <iomanip>
+
 #include <opencv2/imgproc.hpp>
 #include <opencv2/viz/types.hpp>
 
@@ -126,12 +128,12 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
                          pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
     circle(temp, median, radius, FZI_BLUE, 2);
 
-    std::string text = "ID: ";
-    text += std::to_string(lm.nID);
+    std::stringstream textstream;
+    textstream << "ID: " << std::hex << std::showbase << lm.nID;
     cv::Point imgPoint = lm.voCorners.front();
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
-    putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+    putText(temp, textstream.str(), imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
   }
   return temp;
 }
@@ -161,11 +163,11 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
       circle(temp, imgPoint, POINT_RADIUS_MAP, FZI_RED, POINT_THICKNESS);
     }
 
-    std::string text = "ID: ";
-    text += std::to_string(lm.second.id);
+    std::stringstream textstream;
+    textstream << "ID: " << std::hex << std::showbase << lm.second.id;
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
-    putText(temp, text, imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
+    putText(temp, textstream.str(), imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
   }
   return temp;
 }
