@@ -148,26 +148,32 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
   for (auto& lm : landmarks) {
     for (auto& pt : lm.second.points) {
       // Convert point into camera frame
-      double x, y;
-      transformWorldToImg(pt[static_cast<int>(POINT::X)],
-                          pt[static_cast<int>(POINT::Y)],
-                          pt[static_cast<int>(POINT::Z)],
-                          ego_pose.data(),
-                          camera_intrinsics.data(),
-                          &x,
-                          &y);
-      imgPoint.x = static_cast<int>(x);
-      imgPoint.y = static_cast<int>(y);
-
-      /// Corner Points
+      transformWorldToImgCv(pt, camera_intrinsics, ego_pose, imgPoint);
       circle(temp, imgPoint, POINT_RADIUS_MAP, FZI_RED, POINT_THICKNESS);
     }
 
     std::stringstream textstream;
     textstream << "ID: " << std::hex << std::showbase << lm.second.id;
+    transformWorldToImgCv(lm.second.points.front(), camera_intrinsics, ego_pose, imgPoint);
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
     putText(temp, textstream.str(), imgPoint, cv::FONT_HERSHEY_DUPLEX, FONT_SCALE, cv::viz::Color::black());
   }
   return temp;
+}
+
+void DebugVisualizer::transformWorldToImgCv(const Point& p,
+                                            const camera_params_t& camera_intrinsics,
+                                            const pose_t& ego_pose,
+                                            cv::Point& p_img) {
+  double x, y;
+  transformWorldToImg(p[static_cast<int>(POINT::X)],
+                      p[static_cast<int>(POINT::Y)],
+                      p[static_cast<int>(POINT::Z)],
+                      ego_pose.data(),
+                      camera_intrinsics.data(),
+                      &x,
+                      &y);
+  p_img.x = static_cast<int>(x);
+  p_img.y = static_cast<int>(y);
 }

@@ -134,6 +134,16 @@ class DebugVisualizer {
    * @param img
    */
   void prepareImg(cv::Mat& img);
+  /**
+   * @brief Converts point in world coordinates into image coordinates
+   *
+   * @param camera_intrinsics Camera parameters
+   * @param ego_pose  Camera pose
+   */
+  void transformWorldToImgCv(const Point& p,
+                             const camera_params_t& camera_intrinsics,
+                             const pose_t& ego_pos,
+                             cv::Point& p_img);
 };
 
 }  // namespace stargazer
