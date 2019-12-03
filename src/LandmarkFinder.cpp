@@ -401,8 +401,8 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark,
 
     /// it's 1-y because in the definition of the landmark ID the x axis runs
     /// down
-    int nY = floor((y)*4.);
-    int nX = floor((1 - x) * 4.);
+    int nY = static_cast<int>(0.5f + 3.f * y);
+    int nX = static_cast<int>(0.5f + 3.f * (1.f - x));
 
     nX = std::clamp(nY, 0, 3);
     nY = std::clamp(nY, 0, 3);
