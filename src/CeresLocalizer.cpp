@@ -150,11 +150,11 @@ void CeresLocalizer::Optimize() {
   // set optimization settings
   options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
   options.minimizer_progress_to_stdout = false;
-  options.max_num_iterations = 20;
-  //    options.function_tolerance = 0.0000000000000001;
-  //    options.gradient_tolerance = 0.0000000000000001;
-  //    options.parameter_tolerance = 0.0000000000000001;
-  //    options.min_relative_decrease = 0.0000000000000001;
+  // options.max_num_iterations = 20;
+  // options.function_tolerance = 0.0000000000000001;
+  // options.gradient_tolerance = 0.0000000000000001;
+  // options.parameter_tolerance = 0.0000000000000001;
+  // options.min_relative_decrease = 0.0000000000000001;
 
   ceres::Solve(options, &problem, &summary);
 }
