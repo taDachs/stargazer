@@ -43,6 +43,7 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
       z_upper_bound = std::min(z_upper_bound, z);
     }
   }
+  z_upper_bound -= 1.;  // Assumption: Camera is at least 1m below the stargazer landmarks
 
   is_initialized = false;
 }
