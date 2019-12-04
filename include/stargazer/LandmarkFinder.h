@@ -155,6 +155,19 @@ class LandmarkFinder {
                               const cv::Point2f& x1y1,
                               std::vector<cv::Point2f>& p);
 
+  /**
+   * @brief Transforms local point coordinates to global image coordinates
+   *
+   * @param x0y0 Global coordinates of corner (local x=0 y=0)
+   * @param x1y0 Global coordinates of corner (local x=1 y=0)
+   * @param x1y1 Global coordinates of corner (local x=1 y=1)
+   * @param p vector of points to transform
+   */
+  void TransformToGlobalPoints(const cv::Point2f& x0y0,
+                               const cv::Point2f& x1y0,
+                               const cv::Point2f& x1y1,
+                               std::vector<cv::Point2f>& p);
+
   template <typename T>
   inline bool isInside(T value, T lower, T upper, T tol) {
     return value > lower - tol && value < upper + tol;

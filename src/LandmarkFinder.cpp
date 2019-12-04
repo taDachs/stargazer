@@ -384,86 +384,57 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark,
 ///--------------------------------------------------------------------------------------///
 bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark,
                                          std::vector<uint16_t>& valid_ids) {
-  // TOD clean up this function
-  uint16_t nThisID = 0;
+  uint16_t ID = 0;
   const float threshold = 128.f;
-
-  /// same as before: finde affine transformation, but this time from landmark
-  /// coordinates to image coordinates
-  const cv::Point* oCornerOne = &landmark.voCorners.at(0);
-  const cv::Point* oCornerTwo = &landmark.voCorners.at(1);
-  const cv::Point* oCornerThree = &landmark.voCorners.at(2);
-
-  cv::Point oTwoOne = *oCornerOne - *oCornerTwo;
-  cv::Point oTwoThree = *oCornerThree - *oCornerTwo;
-
-  /// make it a right hand system
-  if (0 > oTwoOne.cross(oTwoThree)) {
-    std::swap(oCornerOne, oCornerThree);
-    std::swap(oTwoOne, oTwoThree);
-    std::swap(landmark.voCorners.at(0), landmark.voCorners.at(2));
-  }
 
   /// now we delete the previously detected points and go the other way around
   landmark.voIDPoints.clear();
 
-  cv::Mat Transform(2, 2, CV_32FC1);
-  Transform.at<float>(0, 0) = float(oTwoOne.x);
-  Transform.at<float>(0, 1) = float(oTwoThree.x);
-  Transform.at<float>(1, 0) = float(oTwoOne.y);
-  Transform.at<float>(1, 1) = float(oTwoThree.y);
+  const cv::Point& x0y0 = landmark.voCorners.at(0);
+  const cv::Point& x1y0 = landmark.voCorners.at(1);
+  const cv::Point& x1y1 = landmark.voCorners.at(2);
 
-  cv::Mat ThisPoint(2, 1, CV_32FC1);
-  std::vector<uint16_t> pPointsIDs;
+  std::vector<cv::Point2f> id_points;
+  std::vector<uint16_t> id_point_values;
+  id_points.reserve(DIM * DIM - 3);
+  id_point_values.reserve(DIM * DIM - 3);
 
-  /// go thru all possible ID points and see if the image has a high gray
-  /// value there, i.e. there's light
+  // setup id points in local coordinates and their encoded value
   for (int nX = 0; nX < DIM; nX++) {
     for (int nY = 0; nY < DIM; nY++) {
       /// skip corner points
       if ((nX == 0 && nY == 0) || (nX == 0 && nY == DIM - 1) || (nX == DIM - 1 && nY == 0)) {
         continue;
       }
-      uint16_t ThisPointID = 0;
-      /// since we know the corners, we can go in thirds (for 4x4 boards)
-      /// between them to see if theres a light
-      ThisPoint.at<float>(0, 0) = float(nX) / (DIM - 1);
-      ThisPoint.at<float>(1, 0) = float(nY) / (DIM - 1);
-
-      ThisPoint = Transform * ThisPoint;
-
-      ThisPoint.at<float>(0, 0) += float(oCornerTwo->x);
-      ThisPoint.at<float>(1, 0) += float(oCornerTwo->y);
-
-      cv::Point Index(int(ThisPoint.at<float>(0, 0)), int(ThisPoint.at<float>(1, 0)));
-
-      /// same as for the pixel detection: see if the gray value at the
-      /// point where the light should be exceeds a threshold and thus
-      /// supports the light hypothesis
-      if (0 > Index.x || 0 > Index.y || grayImage_.cols <= Index.x ||
-          grayImage_.rows <= Index.y) {
-        continue;
-      }
-
-      if (threshold < grayImage_.at<uint8_t>(Index.y,
-                                             Index.x)) {  /// todo: this might be extended to some area
-        ThisPointID = static_cast<uint16_t>((1 << (DIM - 1 - nX)) << DIM * nY);
-        landmark.voIDPoints.push_back(Index);
-        pPointsIDs.push_back(ThisPointID);
-      }
-
-      /// add the contribution to the total ID
-      nThisID += ThisPointID;
+      id_points.push_back(cv::Point2f(float(nX) / (DIM - 1), float(nY) / (DIM - 1)));
+      id_point_values.push_back(static_cast<uint16_t>((1 << (DIM - 1 - nX)) << DIM * nY));
     }
   }
-  landmark.nID = nThisID;
+
+  /// same as before: finde affine transformation, but this time from landmark
+  /// coordinates to image coordinates
+  TransformToGlobalPoints(x0y0, x1y0, x1y1, id_points);
+
+  /// check image for bright spots
+  for (size_t n = 0; n < id_points.size(); n++) {
+    cv::Point img_point(id_points[n].x, id_points[n].y);
+    if (0 > img_point.x || 0 > img_point.y || grayImage_.cols <= img_point.x ||
+        grayImage_.rows <= img_point.y) {
+      // corner hypothesis suggest id points outside of visible area. No safe detection possible.
+      return false;
+    }
+    if (threshold < grayImage_.at<uint8_t>(img_point.y,
+                                           img_point.x)) {  /// todo: this might be extended to some area
+      ID += id_point_values[n];
+    }
+  }
 
   /// now, same as before, validate with available IDs
-  std::vector<uint16_t>::iterator pIDLUTIt =
-      std::find(valid_ids.begin(), valid_ids.end(), nThisID);
-  /// if the new ID is valid, enqueue the landmark again
-  if (pIDLUTIt != valid_ids.end()) {
-    valid_ids.erase(pIDLUTIt);
+  std::vector<uint16_t>::iterator idIt =
+      std::find(valid_ids.begin(), valid_ids.end(), ID);
+  if (idIt != valid_ids.end()) {
+    valid_ids.erase(idIt);
+    landmark.nID = ID;
     return true;
   } else {
     return false;
@@ -504,4 +475,15 @@ void LandmarkFinder::TransformToLocalPoints(const cv::Point2f& x0y0,
 
   cv::Matx22f transform(vX.x, vY.x, vX.y, vY.y);
   cv::transform(p, p, transform.inv());
+}
+
+void LandmarkFinder::TransformToGlobalPoints(const cv::Point2f& x0y0,
+                                             const cv::Point2f& x1y0,
+                                             const cv::Point2f& x1y1,
+                                             std::vector<cv::Point2f>& p) {
+  cv::Point2f vX = x1y0 - x0y0;
+  cv::Point2f vY = x1y1 - x1y0;
+  std::transform(p.begin(), p.end(), p.begin(), [x0y0, vX, vY](cv::Point2f p) {
+    return x0y0 + p.x * vX + p.y * vY;
+  });
 }
