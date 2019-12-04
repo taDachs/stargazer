@@ -242,8 +242,8 @@ void LandmarkFinder::FindCorners(const std::vector<cv::Point>& point_list,
 
         bool is_point_invalid = false;
         for (cv::Point2f pL : local_points) {
-          if (pL.x < -pointInsideTolerance || pL.y < -pointInsideTolerance ||
-              pL.x > 1.0 + pointInsideTolerance || pL.y > 1.0 + pointInsideTolerance) {
+          if (!isInside<float>(pL.x, 0.0f, 1.0f, pointInsideTolerance) ||
+              !isInside<float>(pL.y, 0.0f, 1.0f, pointInsideTolerance)) {
             is_point_invalid = true;
             break;
           }

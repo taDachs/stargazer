@@ -154,6 +154,11 @@ class LandmarkFinder {
                               const cv::Point2f& x1y0,
                               const cv::Point2f& x1y1,
                               std::vector<cv::Point2f>& p);
+
+  template <typename T>
+  inline bool isInside(T value, T lower, T upper, T tol) {
+    return value > lower - tol && value < upper + tol;
+  }
 };
 
 }  // namespace stargazer
