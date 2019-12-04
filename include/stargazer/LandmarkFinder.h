@@ -121,7 +121,7 @@ class LandmarkFinder {
   int GetIDs(std::vector<ImgLandmark>& landmarks);
 
   /**
-   * @brief   Tryies to calculate the landmarks id by transforming the observed
+   * @brief Tries to calculate the landmarks id by transforming the observed
    * points into unary landmark coordinates.
    *
    * @param landmark
@@ -139,6 +139,19 @@ class LandmarkFinder {
    * @return bool
    */
   bool CalculateIdBackward(ImgLandmark& landmark, std::vector<uint16_t>& valid_ids);
+
+  /**
+   * @brief Transforms global point coordinates to local landmark coordinates
+   *
+   * @param x0y0 Global coordinates of corner (local x=0 y=0)
+   * @param x1y0 Global coordinates of corner (local x=1 y=0)
+   * @param x1y1 Global coordinates of corner (local x=1 y=1)
+   * @param p vector of points to transform
+   */
+  void TransformToLocalPoints(const cv::Point2f& x0y0,
+                              const cv::Point2f& x1y0,
+                              const cv::Point2f& x1y1,
+                              std::vector<cv::Point2f>& p);
 };
 
 }  // namespace stargazer

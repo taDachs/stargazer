@@ -235,19 +235,15 @@ void LandmarkFinder::FindCorners(const std::vector<cv::Point>& point_list,
         }
 
         // check if each point is on correct side of assumed secant
+        std::vector<cv::Point2f> local_points;
+        local_points.reserve(point_list.size());
+        cv::Mat(point_list).convertTo(local_points, cv::Mat(local_points).type());
+        TransformToLocalPoints(pA, pS, pB, local_points);
+
         bool is_point_invalid = false;
-        // vSP = alpha*vSA + beta*vBA
-        double det = vSA.cross(vSB);
-        for (size_t n = 0; n < point_list.size(); n++) {
-          // skip current corners
-          if (n == i || n == j || n == k) {
-            continue;
-          }
-          cv::Point vSP = point_list[n] - pS;
-          double alpha = (1. / det) * vSP.cross(vSB);
-          double beta = (1. / det) * vSA.cross(vSP);
-          if (alpha < -pointInsideTolerance || beta < -pointInsideTolerance ||
-              alpha > 1.0 + pointInsideTolerance || beta > 1.0 + pointInsideTolerance) {
+        for (cv::Point2f pL : local_points) {
+          if (pL.x < -pointInsideTolerance || pL.y < -pointInsideTolerance ||
+              pL.x > 1.0 + pointInsideTolerance || pL.y > 1.0 + pointInsideTolerance) {
             is_point_invalid = true;
             break;
           }
@@ -347,83 +343,35 @@ std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster
 ///--------------------------------------------------------------------------------------///
 bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark,
                                         std::vector<uint16_t>& valid_ids) {
-  // TODO clean up this function
-  /// first of all: get the three corner points
-  const cv::Point* oCornerOne = &landmark.voCorners.at(0);
-  const cv::Point* oCornerTwo = &landmark.voCorners.at(1);
-  const cv::Point* oCornerThree = &landmark.voCorners.at(2);
-
-  /// second: get the x- and y-axis of the landmark
-  cv::Point oTwoOne = *oCornerOne - *oCornerTwo;
-  cv::Point oTwoThree = *oCornerThree - *oCornerTwo;
-
-  /// at this point we have a right hand system in image coordinates
-  /// now, we find the affine transformation which maps the landmark from
-  /// image coordinate in a landmark-related coordinate frame
-  /// with the corners defined as (0,0), (1,0) and (0,1)
-
-  /// for this, we just compute the inverse of the two side vectors
-  cv::Mat Transform(2, 2, CV_32FC1);
-  Transform.at<float>(0, 0) = float(oTwoOne.x);
-  Transform.at<float>(1, 0) = float(oTwoOne.y);
-  Transform.at<float>(0, 1) = float(oTwoThree.x);
-  Transform.at<float>(1, 1) = float(oTwoThree.y);
-
-  Transform = Transform.inv();
-
-  /// now we have a transform which maps [0,1028]x[0,1280] -> [0,1]x[0,1],
-  /// i.e. our landmark is in the latter do
-  ///
-
-  /// next, the ID points are transformed accordingly and then matched to
-  /// their binary values
-
-  /// the point under examination
-  cv::Mat ThisPoint(2, 1, CV_32FC1);
+  std::vector<cv::Point2f> local_points;
+  cv::Mat(landmark.voIDPoints).convertTo(local_points, cv::Mat(local_points).type());
+  TransformToLocalPoints(
+      landmark.voCorners.at(0), landmark.voCorners.at(1), landmark.voCorners.at(2), local_points);
 
   /// the total ID
   uint16_t ID = 0;
 
   /// go thru all ID points in this landmark structure
-  std::vector<uint16_t> pPointsIDs;
-  for (const auto& pPoints : landmark.voIDPoints) {
-    /// first step: bring the ID point in relation to the origin of the
-    /// landmark
-    ThisPoint.at<float>(0, 0) = float(pPoints.x - oCornerTwo->x);
-    ThisPoint.at<float>(1, 0) = float(pPoints.y - oCornerTwo->y);
+  for (const auto& p : local_points) {
+    int nX = static_cast<int>(0.5f + 3.f * p.x);
+    int nY = static_cast<int>(0.5f + 3.f * p.y);
 
-    /// apply transfrom
-    ThisPoint = Transform * ThisPoint;
-
-    /// next step is the quantization in values between 0 and 3
-    float x = ThisPoint.at<float>(0, 0);
-    float y = ThisPoint.at<float>(1, 0);
-
-    /// it's 1-y because in the definition of the landmark ID the x axis runs
-    /// down
-    int nY = static_cast<int>(0.5f + 3.f * y);
-    int nX = static_cast<int>(0.5f + 3.f * (1.f - x));
-
-    nX = std::clamp(nY, 0, 3);
+    nX = std::clamp(nX, 0, 3);
     nY = std::clamp(nY, 0, 3);
 
     /// the binary values ar coded:
     /// x steps are binary shifts within 4 bit blocks
     /// y steps are binary shifts of 4 bit blocks
     /// see http://hagisonic.com/ for more information on this
-    uint16_t ThisPointID = static_cast<uint16_t>((1 << nX) << 4 * nY);
-    pPointsIDs.push_back(ThisPointID);
-
-    /// add this point's contribution to the landmark ID
-    ID += ThisPointID;
+    ID += static_cast<uint16_t>((1 << nX) << 4 * nY);
   }
-  landmark.nID = ID;
 
   /// validate with the vector of available IDs
   std::vector<uint16_t>::iterator idIterator =
-      std::find(valid_ids.begin(), valid_ids.end(), landmark.nID);
+      std::find(valid_ids.begin(), valid_ids.end(), ID);
   if (idIterator != valid_ids.end()) {  /// ID matches one which is available:
     valid_ids.erase(idIterator);        /// remove this ID
+    landmark.nID = ID;
     return true;
   } else {  /// no ID match
     return false;
@@ -542,4 +490,18 @@ int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
 
   landmarks.erase(unknownLandmarksBegin, landmarks.end());
   return 0;  // TODO What defines success?
+}
+
+void LandmarkFinder::TransformToLocalPoints(const cv::Point2f& x0y0,
+                                            const cv::Point2f& x1y0,
+                                            const cv::Point2f& x1y1,
+                                            std::vector<cv::Point2f>& p) {
+  std::transform(
+      p.begin(), p.end(), p.begin(), [x0y0](cv::Point2f p) { return p - x0y0; });
+
+  cv::Point2f vX = x1y0 - x0y0;
+  cv::Point2f vY = x1y1 - x1y0;
+
+  cv::Matx22f transform(vX.x, vY.x, vX.y, vY.y);
+  cv::transform(p, p, transform.inv());
 }
