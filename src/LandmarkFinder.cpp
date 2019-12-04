@@ -353,17 +353,17 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark,
 
   /// go thru all ID points in this landmark structure
   for (const auto& p : local_points) {
-    int nX = static_cast<int>(0.5f + 3.f * p.x);
-    int nY = static_cast<int>(0.5f + 3.f * p.y);
+    int nX = static_cast<int>(0.5f + (DIM - 1) * p.x);
+    int nY = static_cast<int>(0.5f + (DIM - 1) * p.y);
 
-    nX = std::clamp(nX, 0, 3);
-    nY = std::clamp(nY, 0, 3);
+    nX = std::clamp(nX, 0, DIM - 1);
+    nY = std::clamp(nY, 0, DIM - 1);
 
     /// the binary values ar coded:
     /// x steps are binary shifts within 4 bit blocks
     /// y steps are binary shifts of 4 bit blocks
     /// see http://hagisonic.com/ for more information on this
-    ID += static_cast<uint16_t>((1 << nX) << 4 * nY);
+    ID += static_cast<uint16_t>((1 << nX) << DIM * nY);
   }
 
   /// validate with the vector of available IDs
@@ -418,17 +418,17 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark,
 
   /// go thru all possible ID points and see if the image has a high gray
   /// value there, i.e. there's light
-  for (int nX = 0; nX < 4; nX++) {
-    for (int nY = 0; nY < 4; nY++) {
+  for (int nX = 0; nX < DIM; nX++) {
+    for (int nY = 0; nY < DIM; nY++) {
       /// skip corner points
-      if ((nX == 0 && nY == 0) || (nX == 0 && nY == 3) || (nX == 3 && nY == 0)) {
+      if ((nX == 0 && nY == 0) || (nX == 0 && nY == DIM - 1) || (nX == DIM - 1 && nY == 0)) {
         continue;
       }
       uint16_t ThisPointID = 0;
-      /// since we know the corners, we can go in thirds between them to see
-      /// if theres a light
-      ThisPoint.at<float>(0, 0) = float(nX) * 0.333;
-      ThisPoint.at<float>(1, 0) = float(nY) * 0.333;
+      /// since we know the corners, we can go in thirds (for 4x4 boards)
+      /// between them to see if theres a light
+      ThisPoint.at<float>(0, 0) = float(nX) / (DIM - 1);
+      ThisPoint.at<float>(1, 0) = float(nY) / (DIM - 1);
 
       ThisPoint = Transform * ThisPoint;
 
@@ -447,7 +447,7 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark,
 
       if (threshold < grayImage_.at<uint8_t>(Index.y,
                                              Index.x)) {  /// todo: this might be extended to some area
-        ThisPointID = static_cast<uint16_t>((1 << (3 - nX)) << 4 * nY);
+        ThisPointID = static_cast<uint16_t>((1 << (DIM - 1 - nX)) << DIM * nY);
         landmark.voIDPoints.push_back(Index);
         pPointsIDs.push_back(ThisPointID);
       }

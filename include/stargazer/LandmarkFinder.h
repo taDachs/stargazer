@@ -72,6 +72,8 @@ class LandmarkFinder {
   double pointInsideTolerance;
 
  private:
+  static constexpr int DIM = 4;
+
   /**
    * @brief Uses SimpleBlobDetection for point detection
    *
