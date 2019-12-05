@@ -388,12 +388,12 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
   // setup id points in local coordinates and their encoded value
   for (int nX = 0; nX < DIM; nX++) {
     for (int nY = 0; nY < DIM; nY++) {
-      /// skip corner points
-      if ((nX == 0 && nY == 0) || (nX == 0 && nY == DIM - 1) || (nX == DIM - 1 && nY == 0)) {
+      /// skip all corners (4)
+      if ((nX == 0 || nX == DIM - 1) && (nY == 0 || nY == DIM - 1)) {
         continue;
       }
       id_points.push_back(cv::Point2f(float(nX) / (DIM - 1), float(nY) / (DIM - 1)));
-      id_point_values.push_back(static_cast<uint16_t>((1 << (DIM - 1 - nX)) << DIM * nY));
+      id_point_values.push_back(static_cast<uint16_t>((1 << nX) << (DIM * nY)));
     }
   }
 
