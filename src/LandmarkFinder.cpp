@@ -453,7 +453,9 @@ int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
         while (ib != seenIDs.end() && *ib < id) ++ib;
         return (ib != seenIDs.end() && *ib == id);
       });
-  unseenIDs.erase(iter);
+  if (iter != unseenIDs.end()) {
+    unseenIDs.erase(iter);
+  }
 
   // Move landmarks, for which no valid id could be calculated, back
   unknownLandmarksBegin = std::remove_if(
