@@ -97,15 +97,13 @@ class LandmarkFinder {
                     const unsigned int maxPointsThreshold);
 
   /**
-   * @brief Finds hypotheses for the three corner points of a landmark and adds them to the landmark vector.
-   * It utilizes a score function to find good triple.
+   * @brief Finds hypotheses for the three corner points of a landmark given a
+   * point cluster. It utilizes a score function to find good triples.
    *
-   * @param point_list    input list (found corner points get removed)
-   * @param corner_points output list (holds the found corner points)
-   * @return bool indicates success
+   * @param points cluster of points
+   * @return std::vector<ImgLandmark> reasonable hypotheses
    */
-  void FindCorners(const std::vector<cv::Point>& points,
-                   std::vector<ImgLandmark>& landmark_hypotheses);
+  std::vector<ImgLandmark> FindCorners(const std::vector<cv::Point>& points);
 
   /**
    * @brief Finds valid landmark observations from the input hypotheses
@@ -127,20 +125,18 @@ class LandmarkFinder {
    * points into unary landmark coordinates.
    *
    * @param landmark
-   * @param valid_ids
-   * @return bool Success
+   * @return uint16_t calculated ID
    */
-  bool CalculateIdForward(ImgLandmark& landmark, std::vector<uint16_t>& valid_ids);
+  uint16_t CalculateIdForward(const ImgLandmark& landmark);
 
   /**
    * @brief   Tryies to calculate the landmarks id by looking in the filtered
    * image, whether a bright point can be seen where it is assumed.
    *
    * @param landmark
-   * @param valid_ids
    * @return bool
    */
-  bool CalculateIdBackward(ImgLandmark& landmark, std::vector<uint16_t>& valid_ids);
+  bool CalculateIdBackward(ImgLandmark& landmark);
 
   /**
    * @brief Transforms global point coordinates to local landmark coordinates

@@ -66,7 +66,10 @@ LandmarkFinder::LandmarkFinder(std::string cfgfile) {
   /// Read in Landmark ids
   landmark_map_t landmarks;
   readMapConfig(cfgfile, landmarks);
-  for (auto& el : landmarks) valid_ids_.push_back(el.first);
+  for (auto& el : landmarks) {
+    valid_ids_.push_back(el.first);
+  }
+  std::sort(valid_ids_.begin(), valid_ids_.end());
 }
 
 ///--------------------------------------------------------------------------------------///
@@ -182,8 +185,7 @@ std::vector<cv::Point> LandmarkFinder::FindBlobs(cv::Mat& img_in) {
 /// FindCorners identifies the three corner points and sorts them into output vector
 /// -> find three points which maximize a certain score for corner points
 ///--------------------------------------------------------------------------------------///
-void LandmarkFinder::FindCorners(const std::vector<cv::Point>& point_list,
-                                 std::vector<ImgLandmark>& hypotheses) {
+std::vector<ImgLandmark> LandmarkFinder::FindCorners(const std::vector<cv::Point>& point_list) {
 
   typedef std::pair<double, ImgLandmark> LmHypothesis;
   std::vector<LmHypothesis> scored_hypotheses;
@@ -305,12 +307,13 @@ void LandmarkFinder::FindCorners(const std::vector<cv::Point>& point_list,
     return a.first > b.first;
   });
 
-  // Append set of hypotheses
+  std::vector<ImgLandmark> hypotheses;
   for (auto it = scored_hypotheses.begin();
        it != bad_end && it != scored_hypotheses.begin() + maxCornerHypotheses;
        it++) {
     hypotheses.push_back(it->second);
   }
+  return hypotheses;
 }
 
 ///--------------------------------------------------------------------------------------///
@@ -321,14 +324,9 @@ std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster
   landmarkHypotheses_.clear();
   for (auto& cluster : clusteredPoints) {  /// go thru all clusters
 
-    /// since most probably each cluster represents a landmark, create one
-    ImgLandmark newLandmark;
-    newLandmark.nID = 0;  /// we have not identified anything, so default ID is zero
-    newLandmark.voIDPoints =
-        cluster;  /// all points in this cluster are copied to the ID point vector for further examination
-
     /// FindCorners will move the three corner points into the corners vector
-    FindCorners(cluster, landmarkHypotheses_);
+    std::vector<ImgLandmark> result = FindCorners(cluster);
+    landmarkHypotheses_.insert(landmarkHypotheses_.end(), result.begin(), result.end());
   }
   std::vector<ImgLandmark> OutputLandmarks(landmarkHypotheses_);
   GetIDs(OutputLandmarks);
@@ -341,8 +339,7 @@ std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster
 /// CalculateIdForward sorts the given idPoints and calculates the id
 ///
 ///--------------------------------------------------------------------------------------///
-bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark,
-                                        std::vector<uint16_t>& valid_ids) {
+uint16_t LandmarkFinder::CalculateIdForward(const ImgLandmark& landmark) {
   std::vector<cv::Point2f> local_points;
   cv::Mat(landmark.voIDPoints).convertTo(local_points, cv::Mat(local_points).type());
   TransformToLocalPoints(
@@ -363,31 +360,20 @@ bool LandmarkFinder::CalculateIdForward(ImgLandmark& landmark,
     /// x steps are binary shifts within 4 bit blocks
     /// y steps are binary shifts of 4 bit blocks
     /// see http://hagisonic.com/ for more information on this
-    ID += static_cast<uint16_t>((1 << nX) << DIM * nY);
+    ID += static_cast<uint16_t>((1 << nX) << (DIM * nY));
   }
-
-  /// validate with the vector of available IDs
-  std::vector<uint16_t>::iterator idIterator =
-      std::find(valid_ids.begin(), valid_ids.end(), ID);
-  if (idIterator != valid_ids.end()) {  /// ID matches one which is available:
-    valid_ids.erase(idIterator);        /// remove this ID
-    landmark.nID = ID;
-    return true;
-  } else {  /// no ID match
-    return false;
-  }
+  return ID;
 }
 
 ///--------------------------------------------------------------------------------------///
 /// CalculateIdBackward searches in the filtered image for id points, given the corners.
 ///
 ///--------------------------------------------------------------------------------------///
-bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark,
-                                         std::vector<uint16_t>& valid_ids) {
-  uint16_t ID = 0;
+bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
   const float threshold = 128.f;
 
   /// now we delete the previously detected points and go the other way around
+  uint16_t ID = 0;
   landmark.voIDPoints.clear();
 
   const cv::Point& x0y0 = landmark.voCorners.at(0);
@@ -425,20 +411,12 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark,
     }
     if (threshold < grayImage_.at<uint8_t>(img_point.y,
                                            img_point.x)) {  /// todo: this might be extended to some area
+      landmark.voIDPoints.push_back(img_point);
       ID += id_point_values[n];
     }
   }
-
-  /// now, same as before, validate with available IDs
-  std::vector<uint16_t>::iterator idIt =
-      std::find(valid_ids.begin(), valid_ids.end(), ID);
-  if (idIt != valid_ids.end()) {
-    valid_ids.erase(idIt);
-    landmark.nID = ID;
-    return true;
-  } else {
-    return false;
-  }
+  landmark.nID = ID;
+  return true;
 }
 
 ///--------------------------------------------------------------------------------------///
@@ -446,19 +424,50 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark,
 /// see http://hagisonic.com/ for information on pattern
 ///--------------------------------------------------------------------------------------///
 int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
-  /// get vector of possible IDs
-  std::vector<uint16_t> validIDs = valid_ids_;
+  // Try to get IDs for landmark hypotheses.
+  // Landmarks which couldn't be recognized in a forward manner are given a second chance.
+  // Landmarks can be recognized several times per method, since no ranking can be defined.
+  // The valid ids for the second method are the remaining ids.
 
-  auto unknownLandmarksBegin = std::remove_if(
-      landmarks.begin(), landmarks.end(), [this, &validIDs](ImgLandmark& lm) {
-        return !CalculateIdForward(lm, validIDs);
+  std::vector<uint16_t> unseenIDs = valid_ids_;
+  std::vector<uint16_t> seenIDs;
+
+  // Move landmarks, for which no valid id could be calculated, back
+  auto unknownLandmarksBegin = std::partition(
+      landmarks.begin(), landmarks.end(), [this, &unseenIDs, &seenIDs](ImgLandmark& lm) {
+        uint16_t id = CalculateIdForward(lm);
+        if (std::find(unseenIDs.begin(), unseenIDs.end(), id) != unseenIDs.end()) {
+          // Valid ID
+          lm.nID = id;
+          seenIDs.push_back(id);
+          return true;
+        }
+        return false;
       });
 
+  // Update list of all IDs which not have been seen in this image (so far)
+  std::sort(seenIDs.begin(), seenIDs.end());
+  auto ib = seenIDs.begin();
+  auto iter = std::remove_if(
+      std::begin(unseenIDs), std::end(unseenIDs), [&seenIDs, &ib](uint16_t id) {
+        while (ib != seenIDs.end() && *ib < id) ++ib;
+        return (ib != seenIDs.end() && *ib == id);
+      });
+  unseenIDs.erase(iter);
+
+  // Move landmarks, for which no valid id could be calculated, back
   unknownLandmarksBegin = std::remove_if(
-      unknownLandmarksBegin, landmarks.end(), [this, &validIDs](ImgLandmark& lm) {
-        return !CalculateIdBackward(lm, validIDs);
+      unknownLandmarksBegin, landmarks.end(), [this, &unseenIDs, &seenIDs](ImgLandmark& lm) {
+        if (CalculateIdBackward(lm)) {
+          if (std::find(unseenIDs.begin(), unseenIDs.end(), lm.nID) != unseenIDs.end()) {
+            seenIDs.push_back(lm.nID);
+            return false;
+          }
+        }
+        return true;
       });
 
+  // Erase landmark hypotheses for which both methods did not return a valid id
   landmarks.erase(unknownLandmarksBegin, landmarks.end());
   return 0;  // TODO What defines success?
 }
