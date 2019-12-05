@@ -29,7 +29,7 @@
 namespace stargazer {
 
 /**
- * @brief This class detects landmarks in images.s
+ * @brief This class detects landmarks in images.
  */
 class LandmarkFinder {
  public:
@@ -40,6 +40,7 @@ class LandmarkFinder {
    * @remark The config file has to be generated with ::writeMapConfig!
    */
   LandmarkFinder(std::string cfgfile);
+
   /**
    * @brief Destructor
    */
@@ -48,9 +49,9 @@ class LandmarkFinder {
   /**
    * @brief Main worker function. Writes all detected landmarks into vector
    *
-   * @param img   Image to analyze
-   * @param detected_landmarks    Output vector of detected landmarks
-   * @return int  Error code
+   * @param img Image to analyze
+   * @param detected_landmarks Output vector of detected landmarks
+   * @return int Error code
    */
   int DetectLandmarks(const cv::Mat& img, std::vector<ImgLandmark>& detected_landmarks);
 
@@ -59,17 +60,26 @@ class LandmarkFinder {
   std::vector<Cluster> clusteredPoints_; /**< Keeps a copy of point clusters found*/
   std::vector<ImgLandmark> landmarkHypotheses_; /**< Keeps a copy of landmark hypotheses*/
 
-  float maxRadiusForCluster; /**< Maximum radius for clustering marker points to landmarks*/
+  std::vector<uint16_t> valid_ids_; /**< Vector of valid IDs, read from map*/
+
+  // parameters for point detection
   cv::SimpleBlobDetector::Params blobParams;
-  int maxCornerHypotheses; /**< Maximum number of corner hypotheses which are still considered*/
-  double cornerHypothesesCutoff; /**< Defines near-best corner points hypotheses which are still considered further*/
+
+  // parameters for clustering
+  double maxRadiusForCluster; /**< Maximum radius for clustering marker points to landmarks*/
   uint16_t minPointsPerLandmark; /**< Minimum count of marker points per landmark (0)*/
   uint16_t maxPointsPerLandmark; /**< Maximum count of marker points per landmark (depends on grid used)*/
-  std::vector<uint16_t> valid_ids_; /**< Vector of valid IDs, read from map*/
-  double fwLengthTriangle; /**< weight factor for the circumference of the triangle */
-  double fwCrossProduct; /**< weight factor for cross product of the secants  */
+
+  // parameters for corner hypotheses
+  int maxCornerHypotheses; /**< Maximum number of corner hypotheses which are still considered*/
+  double cornerHypothesesCutoff; /**< Defines near-best corner points hypotheses which are still considered further*/
   double cornerAngleTolerance;
   double pointInsideTolerance;
+  double fwLengthTriangle; /**< Weight factor for the circumference of the triangle*/
+  double fwCrossProduct; /**< Weight factor for cross product of the secants*/
+
+  // parameters for id calculation
+  double idPointThresholdBackwards; /**< Threshold for id points in image for backwards calculation*/
 
  private:
   static constexpr int DIM = 4;
@@ -77,7 +87,7 @@ class LandmarkFinder {
   /**
    * @brief Uses SimpleBlobDetection for point detection
    *
-   * @param img_in    raw image
+   * @param img_in raw image
    */
   std::vector<cv::Point> FindBlobs(cv::Mat& img_in);
 
@@ -92,7 +102,7 @@ class LandmarkFinder {
    */
   void FindClusters(const std::vector<cv::Point>& points_in,
                     std::vector<Cluster>& clusters,
-                    const float radiusThreshold,
+                    const double radiusThreshold,
                     const unsigned int minPointsThreshold,
                     const unsigned int maxPointsThreshold);
 
@@ -112,13 +122,13 @@ class LandmarkFinder {
    * @return std::vector<ImgLandmark>
    */
   std::vector<ImgLandmark> FindLandmarks(const std::vector<Cluster>& clusteredPoints);
+
   /**
    * @brief Tries to identify the landmarks ID
    *
    * @param landmarks vector of observations
-   * @return int  success
    */
-  int GetIDs(std::vector<ImgLandmark>& landmarks);
+  void GetIDs(std::vector<ImgLandmark>& landmarks);
 
   /**
    * @brief Tries to calculate the landmarks id by transforming the observed

@@ -32,18 +32,7 @@ LandmarkFinder::LandmarkFinder(std::string cfgfile) {
 
   /// set parameters
 
-  maxRadiusForCluster = 40;
-  minPointsPerLandmark = 5;
-  maxPointsPerLandmark = 9;
-
-  // Weight factors for corner detection
-  cornerHypothesesCutoff = 1.0;
-  maxCornerHypotheses = 10;
-  fwLengthTriangle = 1.0;
-  fwCrossProduct = 1.0;
-  cornerAngleTolerance = 1.0;
-  pointInsideTolerance = 1.0;
-
+  // parameters for point detection
   blobParams.filterByArea = false;
   blobParams.filterByCircularity = false;
   blobParams.filterByColor = false;
@@ -62,6 +51,22 @@ LandmarkFinder::LandmarkFinder(std::string cfgfile) {
   blobParams.minRepeatability = 0;
   blobParams.minThreshold = 0.f;
   blobParams.thresholdStep = 50.f;
+
+  // parameters for clustering
+  maxRadiusForCluster = 40;
+  minPointsPerLandmark = 5;
+  maxPointsPerLandmark = 9;
+
+  // parameters for corner hypotheses
+  cornerHypothesesCutoff = 1.0;
+  maxCornerHypotheses = 10;
+  cornerAngleTolerance = 1.0;
+  pointInsideTolerance = 1.0;
+  fwLengthTriangle = 1.0;
+  fwCrossProduct = 1.0;
+
+  // parameters for id calc
+  idPointThresholdBackwards = 200.0;
 
   /// Read in Landmark ids
   landmark_map_t landmarks;
@@ -87,18 +92,18 @@ int LandmarkFinder::DetectLandmarks(const cv::Mat& img,
   clusteredPixels_.clear();
   clusteredPoints_.clear();
 
+  detected_landmarks.clear();
+
   /// check if input is valid
-  // Explanation for CV_ Codes :
+  // Explanation for CV_ Codes:
   // CV_[The number of bits per item][Signed or Unsigned][Type Prefix]C[The channel number]
   img.assignTo(grayImage_, CV_8UC1);  // 8bit unsigned with 3 channels
   if (!grayImage_.data) {             /// otherwise: return with error
     std::cerr << "Input data is invalid" << std::endl;
     return -1;
   }
-  detected_landmarks.clear();
 
-  /// This method finds bright points in image
-  /// returns vector of center points of pixel groups
+  /// This method finds bright points in image returns vector of center points of pixel groups
   clusteredPixels_ = FindBlobs(grayImage_);
 
   /// cluster points to groups which could be landmarks
@@ -109,8 +114,6 @@ int LandmarkFinder::DetectLandmarks(const cv::Mat& img,
   /// output is of type landmark, because now you can almost be certain that
   /// what you have is a landmark
   detected_landmarks = FindLandmarks(clusteredPoints_);
-  //  std::cout << "Number of preliminary landmarks found: "<<
-  //  detected_landmarks.size() << std::endl;
 
   return 0;
 }
@@ -121,7 +124,7 @@ int LandmarkFinder::DetectLandmarks(const cv::Mat& img,
 ///--------------------------------------------------------------------------------------///
 void LandmarkFinder::FindClusters(const std::vector<cv::Point>& points_in,
                                   std::vector<Cluster>& clusters,
-                                  const float radiusThreshold,
+                                  const double radiusThreshold,
                                   const unsigned int minPointsThreshold,
                                   const unsigned int maxPointsThreshold) {
 
@@ -163,16 +166,13 @@ void LandmarkFinder::FindClusters(const std::vector<cv::Point>& points_in,
 }
 
 std::vector<cv::Point> LandmarkFinder::FindBlobs(cv::Mat& img_in) {
-
-  // cv::Mat img;
-  // bitwise_not (img_in, img);
-
   // BlobDetector with latest parameters
   std::vector<cv::KeyPoint> keypoints;
   cv::Ptr<cv::SimpleBlobDetector> detector = cv::SimpleBlobDetector::create(blobParams);
   detector->detect(img_in, keypoints);
 
   // two step conversion
+  // TODO use float values instead?
   std::vector<cv::Point2f> points2f;
   cv::KeyPoint::convert(keypoints, points2f);
   std::vector<cv::Point> points;
@@ -222,16 +222,15 @@ std::vector<ImgLandmark> LandmarkFinder::FindCorners(const std::vector<cv::Point
           pB = pH2;
         }
 
-        cv::Point vSA = pA - pS;
-        cv::Point vSB = pB - pS;
-        cv::Point vBA = pB - pA;
-
-        double normSA = cv::norm(vSA);
-        double normSB = cv::norm(vSB);
-        double normBA = cv::norm(vBA);
+        const cv::Point vSA = pA - pS;
+        const cv::Point vSB = pB - pS;
+        const cv::Point vBA = pB - pA;
+        const double normSA = cv::norm(vSA);
+        const double normSB = cv::norm(vSB);
+        const double normBA = cv::norm(vBA);
 
         // check angle between secants
-        double cosangle = vSA.dot(vSB) / (normSA * normSB);
+        const double cosangle = vSA.dot(vSB) / (normSA * normSB);
         if (std::abs(cosangle) > cornerAngleTolerance) {
           continue;
         }
@@ -241,58 +240,43 @@ std::vector<ImgLandmark> LandmarkFinder::FindCorners(const std::vector<cv::Point
         local_points.reserve(point_list.size());
         cv::Mat(point_list).convertTo(local_points, cv::Mat(local_points).type());
         TransformToLocalPoints(pA, pS, pB, local_points);
-
         bool is_point_invalid = false;
         for (cv::Point2f pL : local_points) {
-          if (!isInside<float>(pL.x, 0.0f, 1.0f, pointInsideTolerance) ||
-              !isInside<float>(pL.y, 0.0f, 1.0f, pointInsideTolerance)) {
+          if (!isInside<float>(pL.x, 0.0f, 1.0f, static_cast<float>(pointInsideTolerance)) ||
+              !isInside<float>(pL.y, 0.0f, 1.0f, static_cast<float>(pointInsideTolerance))) {
             is_point_invalid = true;
             break;
           }
         }
         if (is_point_invalid) {
-          // skip corner hypothesis
           continue;
         }
 
-        double score;
-        {
-          // The weight of the score components should be invariant to scaling
-          // e.g. circumference linear vs area quadratic
+        // The weight of the score components should be invariant to scaling
+        // e.g. circumference linear vs area quadratic
+        const double crossProduct = std::fabs(vSA.cross(vBA));
+        const double lengthTriangle = normSA + normSB + normBA;
+        const double score = fwCrossProduct * crossProduct +
+                             fwLengthTriangle * lengthTriangle * lengthTriangle;
 
-          // Cross product (approximate area of stargazer pcb)
-          double crossProduct = std::fabs(vSA.cross(vBA));
-
-          // Triangle circumference
-          double lengthTriangle = normSA + normSB + normBA;
-
-          // Total score
-          score = fwCrossProduct * crossProduct +
-                  fwLengthTriangle * lengthTriangle * lengthTriangle;
-        }
-
-
-        // Keep hypothesis if its considered to be good (relative to current best)
+        // check if corner hypothesis too  worse compared to current best
         if (score < cornerHypothesesCutoff * best_score) {
           continue;
-        } else {
-          ImgLandmark lm;
-          // corners
-          lm.voCorners.push_back(pA);
-          lm.voCorners.push_back(pS);
-          lm.voCorners.push_back(pB);
-          // id points
-          for (size_t n = 0; n < point_list.size(); n++) {
-            if (n == i || n == j || n == k) {
-              continue;
-            }
-            lm.voIDPoints.push_back(point_list[n]);
-          }
-          scored_hypotheses.push_back(LmHypothesis(score, lm));
-          if (score > best_score) {
-            best_score = score;
-          }
         }
+
+        // All checks passed: Save corner hypothesis and its score
+        ImgLandmark lm;
+        lm.voCorners = {pA, pS, pB};
+        // id points
+        for (size_t n = 0; n < point_list.size(); n++) {
+          if (n == i || n == j || n == k) {
+            continue;
+          }
+          lm.voIDPoints.push_back(point_list[n]);
+        }
+        scored_hypotheses.push_back(LmHypothesis(score, lm));
+
+        best_score = std::max(score, best_score);
       }
     }
   }
@@ -307,11 +291,12 @@ std::vector<ImgLandmark> LandmarkFinder::FindCorners(const std::vector<cv::Point
     return a.first > b.first;
   });
 
+  // Return the best hypotheses (considering a maximum count)
   std::vector<ImgLandmark> hypotheses;
   for (auto it = scored_hypotheses.begin();
        it != bad_end && it != scored_hypotheses.begin() + maxCornerHypotheses;
        it++) {
-    hypotheses.push_back(it->second);
+    hypotheses.push_back(std::move(it->second));
   }
   return hypotheses;
 }
@@ -370,8 +355,6 @@ uint16_t LandmarkFinder::CalculateIdForward(const ImgLandmark& landmark) {
 ///
 ///--------------------------------------------------------------------------------------///
 bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
-  const float threshold = 128.f;
-
   /// now we delete the previously detected points and go the other way around
   uint16_t ID = 0;
   landmark.voIDPoints.clear();
@@ -409,8 +392,9 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
       // corner hypothesis suggest id points outside of visible area. No safe detection possible.
       return false;
     }
-    if (threshold < grayImage_.at<uint8_t>(img_point.y,
-                                           img_point.x)) {  /// todo: this might be extended to some area
+    /// todo: this might be extended to some area
+    if (idPointThresholdBackwards <
+        grayImage_.at<uint8_t>(img_point.y, img_point.x)) {
       landmark.voIDPoints.push_back(img_point);
       ID += id_point_values[n];
     }
@@ -423,7 +407,7 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
 /// GetIDs is to identify the ID of a landmark according to the point pattern
 /// see http://hagisonic.com/ for information on pattern
 ///--------------------------------------------------------------------------------------///
-int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
+void LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
   // Try to get IDs for landmark hypotheses.
   // Landmarks which couldn't be recognized in a forward manner are given a second chance.
   // Landmarks can be recognized several times per method, since no ranking can be defined.
@@ -471,7 +455,6 @@ int LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
 
   // Erase landmark hypotheses for which both methods did not return a valid id
   landmarks.erase(unknownLandmarksBegin, landmarks.end());
-  return 0;  // TODO What defines success?
 }
 
 void LandmarkFinder::TransformToLocalPoints(const cv::Point2f& x0y0,
