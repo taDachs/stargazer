@@ -72,7 +72,8 @@ void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float d
 
   // Prevents local minimum with all points behind camera (allowed by camera model)
   // Assumes that camera is approximately looking into positive z direction (map)
-  problem.SetParameterUpperBound(ego_pose.data(), (int)POSE::Z, z_upper_bound);
+  if (problem.HasParameterBlock(ego_pose.data()))
+    problem.SetParameterUpperBound(ego_pose.data(), (int)POSE::Z, z_upper_bound);
 
   // Optimize
   Optimize();
