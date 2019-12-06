@@ -80,17 +80,20 @@ class CeresLocalizer : public Localizer {
    *
    */
   void ClearResidualBlocks();
+
   /**
-   * @brief   Will add a new residual block for every marker of every landmark given in img_landmarks
+   * @brief Will add a new residual block for every marker of every landmark given in img_landmarks
    *
    * @param img_landmarks Vector of observerved landmarks.
    */
   void AddResidualBlocks(std::vector<ImgLandmark> img_landmarks);
+
   /**
    * @brief Will set the camera parameters constant, so that they do not get changed during optimization.
    *
    */
   void SetCameraParamsConstant();
+
   /**
    * @brief This is the actual working method, that sets the ceres configuration and runs to solver.
    *

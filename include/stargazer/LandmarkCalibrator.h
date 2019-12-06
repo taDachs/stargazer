@@ -30,7 +30,7 @@ namespace stargazer {
 
 /**
  * @brief This is the class responsible for map generation. It computes a full
- * bundle adjustment SLAM optimizing allobservations of a full calibration
+ * bundle adjustment SLAM optimizing all observations of a full calibration
  * sequence in one optimization problem.
  */
 class LandmarkCalibrator {
@@ -48,8 +48,8 @@ class LandmarkCalibrator {
    * @brief Adds all residual blocks to the problem. For every marker of every
    * seen landmark at every pose a residual block is added to the problem.
    *
-   * @param observed_poses    Initial guess of the cameras poses
-   * @param observed_landmarks    Vector of all observed Image landmarks
+   * @param observed_poses Initial guess of the cameras poses
+   * @param observed_landmarks Vector of all observed Image landmarks
    */
   void AddReprojectionResidualBlocks(const std::vector<pose_t>& observed_poses,
                                      const std::vector<std::vector<ImgLandmark>>& observed_landmarks);
@@ -72,13 +72,14 @@ class LandmarkCalibrator {
   void ClearProblem();
 
   /**
-   * @brief Sets two poses of two individual landmarks partially constant (0). This is useful, for
-   * fixing the maps coordinate system in a robust way.
+   * @brief Sets two poses of two individual landmarks partially constant (0).
+   * This is useful, for fixing the maps coordinate system in a robust way.
    *
    * @param id_origin   Id of the landmark to set x and y to zero.
    * @param id_xaxis    Id of the landmark to set y to zero.
    */
-  void SetLandmarksOriginAndXAxis(landmark_map_t::key_type id_origin, landmark_map_t::key_type id_xaxis);
+  void SetLandmarksOriginAndXAxis(landmark_map_t::key_type id_origin,
+                                  landmark_map_t::key_type id_xaxis);
 
   /**
    * @brief Getter for the cameras' optimized intrinsic parameters

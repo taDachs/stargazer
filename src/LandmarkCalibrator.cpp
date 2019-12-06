@@ -50,7 +50,7 @@ void LandmarkCalibrator::AddReprojectionResidualBlocks(
 
       Landmark& real_lm = landmarks_.at(observation.nID);
 
-      if (observation.voCorners.size() + observation.voIDPoints.size() !=
+      if (observation.corners.size() + observation.idPoints.size() !=
           real_lm.points.size())
         throw std::runtime_error(
             "Observed Landmark has different ammount of points then real "
@@ -60,9 +60,9 @@ void LandmarkCalibrator::AddReprojectionResidualBlocks(
       for (size_t k = 0; k < real_lm.points.size(); k++) {
         const cv::Point* point_under_test;
         if (k < 3)
-          point_under_test = &observation.voCorners[k];
+          point_under_test = &observation.corners[k];
         else
-          point_under_test = &observation.voIDPoints[k - 3];
+          point_under_test = &observation.idPoints[k - 3];
 
         // Test reprojection error
         double u, v;

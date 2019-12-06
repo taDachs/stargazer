@@ -70,7 +70,7 @@ class DebugVisualizer {
    */
   void SetWindowMode(int mode) { m_window_mode = mode; }
 
-  //TODO const cv::Mat& img, does not garantuee that img is actually constant (opencv pitfall)
+  // TODO const cv::Mat& img, does not garantuee that img is actually constant (opencv pitfall)
 
   /**
    * @brief Draws the vector of points given.
@@ -128,12 +128,14 @@ class DebugVisualizer {
   int m_wait_time{1}; /**< Time to wait when displaying image */
   int m_window_mode{CV_WINDOW_NORMAL}; /**< cvWindowProperty */
   cv::Mat baseImg;                     /**< dummy image */
+
   /**
    * @brief Converts image to color image
    *
    * @param img
    */
   void prepareImg(cv::Mat& img);
+
   /**
    * @brief Converts point in world coordinates into image coordinates
    *
@@ -144,9 +146,9 @@ class DebugVisualizer {
                              const camera_params_t& camera_intrinsics,
                              const pose_t& ego_pos,
                              cv::Point& p_img);
-  std::string getIDstring(int);
+
+  std::string getIDstring(const int);
 
   void getMedianAndRadius(const std::vector<cv::Point> points, cv::Point& median, int& radius);
 };
-
 }  // namespace stargazer

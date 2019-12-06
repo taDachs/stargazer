@@ -84,30 +84,30 @@ struct Landmark {
    *  x'  o   .   .   o
    *
    * The id of points (bit position)
-   *      0   4   8   12
+   *          4   8
    *      1   5   9   13
    *      2   6   10  14
-   *      3   7   11  15
+   *          7   11
    */
 
-  Landmark(){};
+  Landmark() {}
 
   /**
    * @brief Constructor
    *
    * @param ID
    */
-  Landmark(int ID) : id(ID), points(getLandmarkPoints(ID)){};
+  Landmark(int ID) : id(ID), points(getLandmarkPoints(ID)) {}
 
   int id; /**< The landmarks id */
-  std::array<double, (int)POSE::N_PARAMS> pose = {{0., 0., 0., 0., 0., 0.}}; /**< The landmarks pose */
+  std::array<double, static_cast<int>(POSE::N_PARAMS)> pose = {{0., 0., 0., 0., 0., 0.}}; /**< The landmarks pose */
   std::vector<Point> points; /**< Vector of landmark points. The first three are the corners */
   static constexpr int kGridCount = 4; /**< Number of rows and columns of a landmark */
   static constexpr double kGridDistance =
       0.08; /**< Distance between two adjacent landmark LEDs in meters */
 };
 
-inline std::vector<Point> getLandmarkPoints(int ID) {
+inline std::vector<Point> getLandmarkPoints(const int ID) {
   std::vector<Point> points;
 
   // Add corner points
@@ -125,20 +125,20 @@ inline std::vector<Point> getLandmarkPoints(int ID) {
        * y steps are binary shifts by 4
        */
       if ((ID >> (Landmark::kGridCount * y + x)) & 1) {
-        points.push_back({(double)x, (double)y, 0.});
+        points.push_back({static_cast<double>(x), static_cast<double>(y), 0.});
       }
     }
   }
   // Apply landmark scale
   for (Point& p : points) {
-    p[(int)POINT::X] *= Landmark::kGridDistance;
-    p[(int)POINT::Y] *= Landmark::kGridDistance;
+    p[static_cast<int>(POINT::X)] *= Landmark::kGridDistance;
+    p[static_cast<int>(POINT::Y)] *= Landmark::kGridDistance;
   }
   return points;
 }
 
 /**
- * @brief This class resembles the map representation. It hold a map of all known landmarks.
+ * @brief This class resembles the map representation. It holds a map of all known landmarks.
  */
 typedef std::map<int, Landmark> landmark_map_t;
 

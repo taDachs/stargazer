@@ -89,7 +89,7 @@ class LandmarkFinder {
    *
    * @param img_in raw image
    */
-  std::vector<cv::Point> FindBlobs(cv::Mat& img_in);
+  std::vector<cv::Point> FindBlobs(cv::Mat& img_in) const;
 
   /**
    * @brief Finds hypotheses for landmarks by clustering the input points
@@ -104,7 +104,7 @@ class LandmarkFinder {
                     std::vector<Cluster>& clusters,
                     const double radiusThreshold,
                     const unsigned int minPointsThreshold,
-                    const unsigned int maxPointsThreshold);
+                    const unsigned int maxPointsThreshold) const;
 
   /**
    * @brief Finds hypotheses for the three corner points of a landmark given a
@@ -137,7 +137,7 @@ class LandmarkFinder {
    * @param landmark
    * @return uint16_t calculated ID
    */
-  uint16_t CalculateIdForward(const ImgLandmark& landmark);
+  uint16_t CalculateIdForward(const ImgLandmark& landmark) const;
 
   /**
    * @brief   Tryies to calculate the landmarks id by looking in the filtered
@@ -146,7 +146,7 @@ class LandmarkFinder {
    * @param landmark
    * @return bool
    */
-  bool CalculateIdBackward(ImgLandmark& landmark);
+  bool CalculateIdBackward(ImgLandmark& landmark) const;
 
   /**
    * @brief Transforms global point coordinates to local landmark coordinates
@@ -159,7 +159,7 @@ class LandmarkFinder {
   void TransformToLocalPoints(const cv::Point2f& x0y0,
                               const cv::Point2f& x1y0,
                               const cv::Point2f& x1y1,
-                              std::vector<cv::Point2f>& p);
+                              std::vector<cv::Point2f>& p) const;
 
   /**
    * @brief Transforms local point coordinates to global image coordinates
@@ -172,7 +172,7 @@ class LandmarkFinder {
   void TransformToGlobalPoints(const cv::Point2f& x0y0,
                                const cv::Point2f& x1y0,
                                const cv::Point2f& x1y1,
-                               std::vector<cv::Point2f>& p);
+                               std::vector<cv::Point2f>& p) const;
 
   template <typename T>
   inline bool isInside(T value, T lower, T upper, T tol) {

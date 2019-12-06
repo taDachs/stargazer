@@ -90,10 +90,10 @@ void CeresLocalizer::ClearResidualBlocks() {
 void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
   for (auto& img_lm : img_landmarks) {
 
-    if (img_lm.voIDPoints.size() + img_lm.voCorners.size() !=
+    if (img_lm.idPoints.size() + img_lm.corners.size() !=
         landmarks[img_lm.nID].points.size()) {
       std::cerr << "point count does not match! "
-                << img_lm.voIDPoints.size() + img_lm.voCorners.size()
+                << img_lm.idPoints.size() + img_lm.corners.size()
                 << "(observed) vs. " << landmarks[img_lm.nID].points.size()
                 << "(map)\t ID: " << img_lm.nID << std::endl;
       return;
@@ -104,15 +104,15 @@ void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
       ceres::CostFunction* cost_function;
       if (k < 3) {
         cost_function = WorldToImageReprojectionFunctor::Create(
-            img_lm.voCorners[k].x,
-            img_lm.voCorners[k].y,
+            img_lm.corners[k].x,
+            img_lm.corners[k].y,
             landmarks[img_lm.nID].points[k][(int)POINT::X],
             landmarks[img_lm.nID].points[k][(int)POINT::Y],
             landmarks[img_lm.nID].points[k][(int)POINT::Z]);
       } else {
         cost_function = WorldToImageReprojectionFunctor::Create(
-            img_lm.voIDPoints[k - 3].x,
-            img_lm.voIDPoints[k - 3].y,
+            img_lm.idPoints[k - 3].x,
+            img_lm.idPoints[k - 3].y,
             landmarks[img_lm.nID].points[k][(int)POINT::X],
             landmarks[img_lm.nID].points[k][(int)POINT::Y],
             landmarks[img_lm.nID].points[k][(int)POINT::Z]);

@@ -33,10 +33,10 @@ inline YAML::Node loadYaml(const std::string& cfgfile) {
   YAML::Node config;
   try {
     config = YAML::LoadFile(cfgfile);
-  } catch (YAML::BadFile& e) {
+  } catch (YAML::BadFile& /*e*/) {
     std::string msg = "Stargazer config file does not exist: " + cfgfile;
     throw std::runtime_error(msg);
-  } catch (YAML::ParserException& e) {
+  } catch (YAML::ParserException& /*e*/) {
     std::string msg = "Wrong YAML syntax in stargazer config file: " + cfgfile;
     throw std::runtime_error(msg);
   }

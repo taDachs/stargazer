@@ -26,7 +26,6 @@
 
 namespace stargazer {
 
-template <typename T>
 /**
  * @brief This function will transform a point, given in landmark coordinates into world coordinates
  *
@@ -37,6 +36,7 @@ template <typename T>
  * @param y_world y value of ouput point in world coordinates
  * @param z_world z value of ouput point in world coordinates
  */
+template <typename T>
 void transformLandMarkToWorld(const T& x_landmark,
                               const T& y_landmark,
                               const T* const landmark_pose,
@@ -65,9 +65,8 @@ void transformLandMarkToWorld(const T& x_landmark,
   *z_world = point_world[2];
 }
 
-template <typename T>
-/**
 
+/**
  * @brief This function will transform a point, given in world coordinates into image coordinates
  *
  * @param x_world  x value of input point in world coordinates
@@ -78,6 +77,7 @@ template <typename T>
  * @param x_image x value of ouput point in image coordinates
  * @param y_image y value of ouput point in image coordinates
  */
+template <typename T>
 void transformWorldToImg(const T& x_world,
                          const T& y_world,
                          const T& z_world,
@@ -121,7 +121,6 @@ void transformWorldToImg(const T& x_world,
   *y_image = p_image[1];
 }
 
-template <typename T>
 /**
  * @brief This function will transform a point, given in landmark coordinates into image coordinates
  *
@@ -133,6 +132,7 @@ template <typename T>
  * @param x_image x value of ouput point in image coordinates
  * @param y_image y value of ouput point in image coordinates
  */
+template <typename T>
 void transformLandMarkToImage(const T& x_landmark,
                               const T& y_landmark,
                               const T* const landmark_pose,

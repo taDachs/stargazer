@@ -85,20 +85,20 @@ cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img,
   prepareImg(temp);
   for (auto& lm : landmarks) {
     // Secants
-    line(temp, lm.voCorners[1], lm.voCorners[0], cv::viz::Color::red());
-    line(temp, lm.voCorners[1], lm.voCorners[2], cv::viz::Color::red());
+    line(temp, lm.corners[1], lm.corners[0], cv::viz::Color::red());
+    line(temp, lm.corners[1], lm.corners[2], cv::viz::Color::red());
     // Corners
-    cv::drawMarker(temp, lm.voCorners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2);  // leading corner clockwise (if assumption of rhs is valid)
-    circle(temp, lm.voCorners[1], 3, cv::viz::Color::red(), POINT_THICKNESS);  // middle corner
-    circle(temp, lm.voCorners[2], 3, cv::viz::Color::red(), POINT_THICKNESS);  // following corner clockwise
+    cv::drawMarker(temp, lm.corners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2);  // leading corner clockwise (if assumption of rhs is valid)
+    circle(temp, lm.corners[1], 3, cv::viz::Color::red(), POINT_THICKNESS);  // middle corner
+    circle(temp, lm.corners[2], 3, cv::viz::Color::red(), POINT_THICKNESS);  // following corner clockwise
     // Inner points
-    for (auto& imgPoint : lm.voIDPoints) {
+    for (auto& imgPoint : lm.idPoints) {
       circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
     // Cluster circle
     cv::Point median;
     int radius;
-    getMedianAndRadius({lm.voCorners[0], lm.voCorners[2]}, median, radius);
+    getMedianAndRadius({lm.corners[0], lm.corners[2]}, median, radius);
     circle(temp, median, radius, FZI_BLUE, 2);
 
     // Landmarks have no ID yet
@@ -111,19 +111,21 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
   cv::Mat temp = img.clone();
   prepareImg(temp);
   for (auto& lm : landmarks) {
-    for (auto& imgPoint : lm.voCorners) {
+    // Corners
+    for (auto& imgPoint : lm.corners) {
       circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
-    for (auto& imgPoint : lm.voIDPoints) {
+    // Inner points
+    for (auto& imgPoint : lm.idPoints) {
       circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
     // Cluster circle
     cv::Point median;
     int radius;
-    getMedianAndRadius({lm.voCorners[0], lm.voCorners[2]}, median, radius);
+    getMedianAndRadius({lm.corners[0], lm.corners[2]}, median, radius);
     circle(temp, median, radius, FZI_BLUE, 2);
 
-    cv::Point imgPoint = lm.voCorners.front();
+    cv::Point imgPoint = lm.corners.front();
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
     putText(temp,
@@ -179,7 +181,7 @@ void DebugVisualizer::transformWorldToImgCv(const Point& p,
   p_img.y = static_cast<int>(y);
 }
 
-std::string DebugVisualizer::getIDstring(int id) {
+std::string DebugVisualizer::getIDstring(const int id) {
   std::stringstream textstream;
   textstream << "ID: " << std::showbase << std::internal << std::setfill('0')
              << std::setw(6) << std::hex << id;

@@ -68,7 +68,7 @@ LandmarkFinder::LandmarkFinder(std::string cfgfile) {
   // parameters for id calc
   idPointThresholdBackwards = 200.0;
 
-  /// Read in Landmark ids
+  /// Read in Landmark IDs
   landmark_map_t landmarks;
   readMapConfig(cfgfile, landmarks);
   for (auto& el : landmarks) {
@@ -126,7 +126,7 @@ void LandmarkFinder::FindClusters(const std::vector<cv::Point>& points_in,
                                   std::vector<Cluster>& clusters,
                                   const double radiusThreshold,
                                   const unsigned int minPointsThreshold,
-                                  const unsigned int maxPointsThreshold) {
+                                  const unsigned int maxPointsThreshold) const {
 
   for (auto& thisPoint : points_in)  /// go thru all points
   {
@@ -165,7 +165,7 @@ void LandmarkFinder::FindClusters(const std::vector<cv::Point>& points_in,
                  clusters.end());
 }
 
-std::vector<cv::Point> LandmarkFinder::FindBlobs(cv::Mat& img_in) {
+std::vector<cv::Point> LandmarkFinder::FindBlobs(cv::Mat& img_in) const {
   // BlobDetector with latest parameters
   std::vector<cv::KeyPoint> keypoints;
   cv::Ptr<cv::SimpleBlobDetector> detector = cv::SimpleBlobDetector::create(blobParams);
@@ -266,13 +266,13 @@ std::vector<ImgLandmark> LandmarkFinder::FindCorners(const std::vector<cv::Point
 
         // All checks passed: Save corner hypothesis and its score
         ImgLandmark lm;
-        lm.voCorners = {pA, pS, pB};
+        lm.corners = {pA, pS, pB};
         // id points
         for (size_t n = 0; n < point_list.size(); n++) {
           if (n == i || n == j || n == k) {
             continue;
           }
-          lm.voIDPoints.push_back(point_list[n]);
+          lm.idPoints.push_back(point_list[n]);
         }
         scored_hypotheses.push_back(LmHypothesis(score, lm));
 
@@ -324,11 +324,11 @@ std::vector<ImgLandmark> LandmarkFinder::FindLandmarks(const std::vector<Cluster
 /// CalculateIdForward sorts the given idPoints and calculates the id
 ///
 ///--------------------------------------------------------------------------------------///
-uint16_t LandmarkFinder::CalculateIdForward(const ImgLandmark& landmark) {
+uint16_t LandmarkFinder::CalculateIdForward(const ImgLandmark& landmark) const {
   std::vector<cv::Point2f> local_points;
-  cv::Mat(landmark.voIDPoints).convertTo(local_points, cv::Mat(local_points).type());
+  cv::Mat(landmark.idPoints).convertTo(local_points, cv::Mat(local_points).type());
   TransformToLocalPoints(
-      landmark.voCorners.at(0), landmark.voCorners.at(1), landmark.voCorners.at(2), local_points);
+      landmark.corners.at(0), landmark.corners.at(1), landmark.corners.at(2), local_points);
 
   /// the total ID
   uint16_t ID = 0;
@@ -345,7 +345,7 @@ uint16_t LandmarkFinder::CalculateIdForward(const ImgLandmark& landmark) {
     /// x steps are binary shifts within 4 bit blocks
     /// y steps are binary shifts of 4 bit blocks
     /// see http://hagisonic.com/ for more information on this
-    ID += static_cast<uint16_t>((1 << nX) << (DIM * nY));
+    ID += static_cast<uint16_t>(1 << (nX + DIM * nY));
   }
   return ID;
 }
@@ -354,14 +354,14 @@ uint16_t LandmarkFinder::CalculateIdForward(const ImgLandmark& landmark) {
 /// CalculateIdBackward searches in the filtered image for id points, given the corners.
 ///
 ///--------------------------------------------------------------------------------------///
-bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
+bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) const {
   /// now we delete the previously detected points and go the other way around
   uint16_t ID = 0;
-  landmark.voIDPoints.clear();
+  landmark.idPoints.clear();
 
-  const cv::Point& x0y0 = landmark.voCorners.at(0);
-  const cv::Point& x1y0 = landmark.voCorners.at(1);
-  const cv::Point& x1y1 = landmark.voCorners.at(2);
+  const cv::Point& x0y0 = landmark.corners.at(0);
+  const cv::Point& x1y0 = landmark.corners.at(1);
+  const cv::Point& x1y1 = landmark.corners.at(2);
 
   std::vector<cv::Point2f> id_points;
   std::vector<uint16_t> id_point_values;
@@ -376,7 +376,7 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
         continue;
       }
       id_points.push_back(cv::Point2f(float(nX) / (DIM - 1), float(nY) / (DIM - 1)));
-      id_point_values.push_back(static_cast<uint16_t>((1 << nX) << (DIM * nY)));
+      id_point_values.push_back(static_cast<uint16_t>(1 << (nX + DIM * nY)));
     }
   }
 
@@ -395,7 +395,7 @@ bool LandmarkFinder::CalculateIdBackward(ImgLandmark& landmark) {
     /// todo: this might be extended to some area
     if (idPointThresholdBackwards <
         grayImage_.at<uint8_t>(img_point.y, img_point.x)) {
-      landmark.voIDPoints.push_back(img_point);
+      landmark.idPoints.push_back(img_point);
       ID += id_point_values[n];
     }
   }
@@ -460,24 +460,24 @@ void LandmarkFinder::GetIDs(std::vector<ImgLandmark>& landmarks) {
 void LandmarkFinder::TransformToLocalPoints(const cv::Point2f& x0y0,
                                             const cv::Point2f& x1y0,
                                             const cv::Point2f& x1y1,
-                                            std::vector<cv::Point2f>& p) {
+                                            std::vector<cv::Point2f>& p) const {
   std::transform(
       p.begin(), p.end(), p.begin(), [x0y0](cv::Point2f p) { return p - x0y0; });
 
-  cv::Point2f vX = x1y0 - x0y0;
-  cv::Point2f vY = x1y1 - x1y0;
+  const cv::Point2f vX = x1y0 - x0y0;
+  const cv::Point2f vY = x1y1 - x1y0;
 
-  cv::Matx22f transform(vX.x, vY.x, vX.y, vY.y);
+  const cv::Matx22f transform(vX.x, vY.x, vX.y, vY.y);
   cv::transform(p, p, transform.inv());
 }
 
 void LandmarkFinder::TransformToGlobalPoints(const cv::Point2f& x0y0,
                                              const cv::Point2f& x1y0,
                                              const cv::Point2f& x1y1,
-                                             std::vector<cv::Point2f>& p) {
-  cv::Point2f vX = x1y0 - x0y0;
-  cv::Point2f vY = x1y1 - x1y0;
-  std::transform(p.begin(), p.end(), p.begin(), [x0y0, vX, vY](cv::Point2f p) {
+                                             std::vector<cv::Point2f>& p) const {
+  const cv::Point2f vX = x1y0 - x0y0;
+  const cv::Point2f vY = x1y1 - x1y0;
+  std::transform(p.begin(), p.end(), p.begin(), [&x0y0, &vX, &vY](cv::Point2f p) {
     return x0y0 + p.x * vX + p.y * vY;
   });
 }
