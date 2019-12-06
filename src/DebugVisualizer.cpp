@@ -62,23 +62,18 @@ cv::Mat DebugVisualizer::DrawPoints(const cv::Mat& img, const std::vector<cv::Po
 }
 
 cv::Mat DebugVisualizer::DrawClusters(const cv::Mat& img,
-                                      const std::vector<std::vector<cv::Point>> points) {
+                                      const std::vector<std::vector<cv::Point>> clusters) {
   cv::Mat temp = img.clone();
   prepareImg(temp);
-  for (auto& group : points) {
-    cv::Point median(0, 0);
-    for (auto& point : group) {
-      median += point;
+  for (auto& cluster : clusters) {
+    // Points
+    for (auto& point : cluster) {
       circle(temp, point, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
-    median *= 1.0 / group.size();
-    double variance = 0.0;
-    for (auto& point : group) {
-      variance += std::pow(median.x - point.x, 2) + std::pow(median.y - point.y, 2);
-    }
-    variance /= (group.size());
-    int radius = static_cast<int>(2 * sqrt(variance));
-
+    // Cluster circle
+    cv::Point median;
+    int radius;
+    getMedianAndRadius(cluster, median, radius);
     circle(temp, median, radius, FZI_BLUE, 2);
   }
   return temp;
@@ -100,10 +95,10 @@ cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img,
     for (auto& imgPoint : lm.voIDPoints) {
       circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
-    cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
-                     (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
-    double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
-                         pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
+    // Cluster circle
+    cv::Point median;
+    int radius;
+    getMedianAndRadius({lm.voCorners[0], lm.voCorners[2]}, median, radius);
     circle(temp, median, radius, FZI_BLUE, 2);
 
     // Landmarks have no ID yet
@@ -122,10 +117,10 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
     for (auto& imgPoint : lm.voIDPoints) {
       circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
-    cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
-                     (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
-    double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
-                         pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
+    // Cluster circle
+    cv::Point median;
+    int radius;
+    getMedianAndRadius({lm.voCorners[0], lm.voCorners[2]}, median, radius);
     circle(temp, median, radius, FZI_BLUE, 2);
 
     cv::Point imgPoint = lm.voCorners.front();
@@ -189,4 +184,21 @@ std::string DebugVisualizer::getIDstring(int id) {
   textstream << "ID: " << std::showbase << std::internal << std::setfill('0')
              << std::setw(6) << std::hex << id;
   return textstream.str();
+}
+
+void DebugVisualizer::getMedianAndRadius(const std::vector<cv::Point> points,
+                                         cv::Point& median,
+                                         int& radius) {
+  median = cv::Point(0, 0);
+  for (auto& p : points) {
+    median += p;
+  }
+  median *= 1. / points.size();
+
+  double variance = 0.;
+  for (auto& p : points) {
+    variance += std::pow(median.x - p.x, 2) + std::pow(median.y - p.y, 2);
+  }
+  variance /= points.size();
+  radius = static_cast<int>(2 * sqrt(variance));
 }

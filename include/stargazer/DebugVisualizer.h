@@ -84,10 +84,10 @@ class DebugVisualizer {
    * @brief Draws the vector of clusters given.
    *
    * @param img Input image is copied
-   * @param points    Clusters to be drawn
+   * @param clusters Clusters to be drawn
    * @return cv::Mat A copy of the input image with the drawn points
    */
-  cv::Mat DrawClusters(const cv::Mat& img, const std::vector<std::vector<cv::Point>> points);
+  cv::Mat DrawClusters(const cv::Mat& img, const std::vector<std::vector<cv::Point>> clusters);
 
   /**
    * @brief Draws the image landmark hypotheses into the input image
@@ -145,6 +145,8 @@ class DebugVisualizer {
                              const pose_t& ego_pos,
                              cv::Point& p_img);
   std::string getIDstring(int);
+
+  void getMedianAndRadius(const std::vector<cv::Point> points, cv::Point& median, int& radius);
 };
 
 }  // namespace stargazer
