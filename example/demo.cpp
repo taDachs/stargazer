@@ -24,23 +24,21 @@ int main(int argc, char** argv) {
 
   // Invert images for better visibilty
   cv::bitwise_not(landmarkFinder.grayImage_, landmarkFinder.grayImage_);
-  cv::bitwise_not(landmarkFinder.filteredImage_, landmarkFinder.filteredImage_);
+  debugVisualizer.ShowImage(landmarkFinder.grayImage_, "0 Gray Image");
 
-  // Show images
-  debugVisualizer.ShowImage(landmarkFinder.grayImage_, "Gray Image");
-  debugVisualizer.ShowImage(landmarkFinder.filteredImage_, "Filtered Image");
-
-  // Show detections
-  auto point_img = debugVisualizer.ShowPoints(landmarkFinder.filteredImage_,
-                                              landmarkFinder.clusteredPixels_);
-  auto cluster_img = debugVisualizer.ShowClusters(
-      landmarkFinder.filteredImage_, landmarkFinder.clusteredPoints_);
-
-  // Show landmarks
-  cv::Mat temp;
-  cvtColor(landmarkFinder.grayImage_, temp, CV_GRAY2BGR);
-  debugVisualizer.DrawLandmarks(temp, detected_landmarks);
-  debugVisualizer.ShowImage(temp, "Detected Landmarks");
+  // Draw detections
+  debugVisualizer.ShowImage(
+      debugVisualizer.DrawPoints(landmarkFinder.grayImage_, landmarkFinder.clusteredPixels_),
+      "1 Points");
+  debugVisualizer.ShowImage(
+      debugVisualizer.DrawClusters(landmarkFinder.grayImage_, landmarkFinder.clusteredPoints_),
+      "2 Clusters");
+  debugVisualizer.ShowImage(debugVisualizer.DrawLandmarkHypotheses(
+                                landmarkFinder.grayImage_, landmarkFinder.landmarkHypotheses_),
+                            "3 Hypotheses");
+  debugVisualizer.ShowImage(
+      debugVisualizer.DrawLandmarks(landmarkFinder.grayImage_, detected_landmarks),
+      "4 Landmarks");
 
   // Localize
   const std::string args(argv[2]);
@@ -49,9 +47,15 @@ int main(int argc, char** argv) {
   cout << localizer.getSummary().FullReport() << endl << endl;
 
   pose_t pose = localizer.getPose();
-  cout << "Pose is x=" << pose[(int)POSE::X] << " y=" << pose[(int)POSE::Y]
-       << " z=" << pose[(int)POSE::Z] << " rx=" << pose[(int)POSE::Rx]
-       << " ry=" << pose[(int)POSE::Ry] << " rz=" << pose[(int)POSE::Rz] << endl;
+  // clang-format off
+  cout << "Pose is"
+       << " x=" << pose[(int)POSE::X]
+       << " y=" << pose[(int)POSE::Y]
+       << " z=" << pose[(int)POSE::Z]
+       << " rx=" << pose[(int)POSE::Rx]
+       << " ry=" << pose[(int)POSE::Ry]
+       << " rz=" << pose[(int)POSE::Rz] << endl;
+  // clang-format on
 
   return EXIT_SUCCESS;
 }
