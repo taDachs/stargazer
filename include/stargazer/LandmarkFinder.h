@@ -55,8 +55,8 @@ class LandmarkFinder {
    */
   int DetectLandmarks(const cv::Mat& img, std::vector<ImgLandmark>& detected_landmarks);
 
-  cv::Mat grayImage_; /**< Keeps a copy of the grayvalue image */
-  std::vector<cv::Point> clusteredPixels_; /**< Keeps a copy of pixel clusters found */
+  cv::Mat grayImage_;             /**< Keeps a copy of the grayvalue image */
+  std::vector<cv::Point> points_; /**< Keeps a copy of points found */
   std::vector<Cluster> clusteredPoints_; /**< Keeps a copy of point clusters found*/
   std::vector<ImgLandmark> landmarkHypotheses_; /**< Keeps a copy of landmark hypotheses*/
 

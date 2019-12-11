@@ -89,7 +89,7 @@ LandmarkFinder::~LandmarkFinder() {}
 ///--------------------------------------------------------------------------------------///
 int LandmarkFinder::DetectLandmarks(const cv::Mat& img,
                                     std::vector<ImgLandmark>& detected_landmarks) {
-  clusteredPixels_.clear();
+  points_.clear();
   clusteredPoints_.clear();
 
   detected_landmarks.clear();
@@ -104,11 +104,11 @@ int LandmarkFinder::DetectLandmarks(const cv::Mat& img,
   }
 
   /// This method finds bright points in image returns vector of center points of pixel groups
-  clusteredPixels_ = FindBlobs(grayImage_);
+  points_ = FindBlobs(grayImage_);
 
   /// cluster points to groups which could be landmarks
   /// returns a vector of clusters which themselves are vectors of points
-  FindClusters(clusteredPixels_, clusteredPoints_, maxRadiusForCluster, minPointsPerLandmark, maxPointsPerLandmark);
+  FindClusters(points_, clusteredPoints_, maxRadiusForCluster, minPointsPerLandmark, maxPointsPerLandmark);
 
   /// on the clustered points, extract corners
   /// output is of type landmark, because now you can almost be certain that

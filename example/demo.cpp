@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 
   // Draw detections
   debugVisualizer.ShowImage(
-      debugVisualizer.DrawPoints(landmarkFinder.grayImage_, landmarkFinder.clusteredPixels_),
+      debugVisualizer.DrawPoints(landmarkFinder.grayImage_, landmarkFinder.points_),
       "1 Points");
   debugVisualizer.ShowImage(
       debugVisualizer.DrawClusters(landmarkFinder.grayImage_, landmarkFinder.clusteredPoints_),
