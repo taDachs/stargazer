@@ -17,113 +17,190 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "DebugVisualizer.h"
-#include "CoordinateTransformations.h"
+
+#include <iomanip>
+
 #include <opencv2/imgproc.hpp>
+#include <opencv2/viz/types.hpp>
+
+#include "CoordinateTransformations.h"
 
 using namespace stargazer;
 
+const cv::Scalar DebugVisualizer::FZI_BLUE(163, 101, 0);
+const cv::Scalar DebugVisualizer::FZI_GREEN(73, 119, 0);
+const cv::Scalar DebugVisualizer::FZI_RED(39, 157, 236);
+
+const int DebugVisualizer::POINT_RADIUS_IMG(1);
+const int DebugVisualizer::POINT_RADIUS_MAP(4);
+const int DebugVisualizer::POINT_THICKNESS(2);
+const int DebugVisualizer::TEXT_OFFSET(25);
+const double DebugVisualizer::FONT_SCALE(0.4);
+
 void DebugVisualizer::prepareImg(cv::Mat& img) {
-    if (img.type() == CV_8UC1) {
-        // input image is grayscale
-        cvtColor(img, img, CV_GRAY2RGB);
-    } else {
+  if (img.type() == CV_8UC1) {
+    // input image is grayscale
+    cvtColor(img, img, CV_GRAY2RGB);
+  }
+}
+
+void DebugVisualizer::ShowImage(const cv::Mat& img, std::string name) {
+  cv::namedWindow(name, m_window_mode);
+  cv::imshow(name, img);
+  cv::waitKey(m_wait_time);
+}
+
+cv::Mat DebugVisualizer::DrawPoints(const cv::Mat& img, const std::vector<cv::Point> points) {
+  const int marker_size(8);
+  const int thickness(1);
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& point : points) {
+    cv::drawMarker(temp, point, FZI_GREEN, cv::MARKER_CROSS, marker_size, thickness);
+  }
+  return temp;
+}
+
+cv::Mat DebugVisualizer::DrawClusters(const cv::Mat& img,
+                                      const std::vector<std::vector<cv::Point>> clusters) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& cluster : clusters) {
+    // Points
+    for (auto& point : cluster) {
+      circle(temp, point, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
-}
-void DebugVisualizer::ShowImage(cv::Mat& img, std::string name) {
-    cv::namedWindow(name, m_window_mode);
-    cv::imshow(name, img);
-    cv::waitKey(m_wait_time);
-}
-
-cv::Mat DebugVisualizer::ShowPoints(const cv::Mat& img, const std::vector<cv::Point> points) {
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    for (auto& point : points)
-        circle(temp, point, 1, cv::Scalar(73, 119, 0), 2); // FZI Green
-    ShowImage(temp, "Points");
-    return temp;
+    // Cluster circle
+    cv::Point median;
+    int radius;
+    getMedianAndRadius(cluster, median, radius);
+    circle(temp, median, radius, FZI_BLUE, 2);
+  }
+  return temp;
 }
 
-cv::Mat DebugVisualizer::ShowClusters(const cv::Mat& img,
-                                      const std::vector<std::vector<cv::Point>> points) {
-    cv::Mat temp = img.clone();
-    prepareImg(temp);
-    for (auto& group : points) {
-        cv::Point median(0, 0);
-        for (auto& point : group) {
-            median += point;
-            circle(temp, point, 1, cv::Scalar(73, 119, 0), 2); // FZI Green
-        }
-        median *= 1.0 / group.size();
-        double variance = 0.0;
-        for (auto& point : group) {
-            variance += std::pow(median.x - point.x, 2) + std::pow(median.y - point.y, 2);
-        }
-        variance /= (group.size());
-        int radius = static_cast<int>(2 * sqrt(variance));
-
-        circle(temp, median, radius, cv::Scalar(163, 101, 0), 2); // FZI Blue
+cv::Mat DebugVisualizer::DrawLandmarkHypotheses(const cv::Mat& img,
+                                                const std::vector<ImgLandmark>& landmarks) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& lm : landmarks) {
+    // Secants
+    line(temp, lm.corners[1], lm.corners[0], cv::viz::Color::red());
+    line(temp, lm.corners[1], lm.corners[2], cv::viz::Color::red());
+    // Corners
+    cv::drawMarker(temp, lm.corners[0], cv::viz::Color::red(), cv::MARKER_CROSS, 8, 2);  // leading corner clockwise (if assumption of rhs is valid)
+    circle(temp, lm.corners[1], 3, cv::viz::Color::red(), POINT_THICKNESS);  // middle corner
+    circle(temp, lm.corners[2], 3, cv::viz::Color::red(), POINT_THICKNESS);  // following corner clockwise
+    // Inner points
+    for (auto& imgPoint : lm.idPoints) {
+      circle(temp, imgPoint, 1, FZI_GREEN, POINT_THICKNESS);
     }
-    ShowImage(temp, "Clusters");
-    return temp;
+    // Cluster circle
+    cv::Point median;
+    int radius;
+    getMedianAndRadius({lm.corners[0], lm.corners[2]}, median, radius);
+    circle(temp, median, radius, FZI_BLUE, 2);
+
+    // Landmarks have no ID yet
+  }
+  return temp;
 }
 
-void DebugVisualizer::DrawLandmarks(cv::Mat& img, const std::vector<ImgLandmark>& landmarks) {
-
-    for (auto& lm : landmarks) {
-        for (auto& imgPoint : lm.voCorners) {
-            circle(img, imgPoint, 1, cv::Scalar(73, 119, 0), 2); // FZI Green
-        }
-        for (auto& imgPoint : lm.voIDPoints) {
-            circle(img, imgPoint, 1, cv::Scalar(73, 119, 0), 2); // FZI Green
-        }
-        cv::Point median{(lm.voCorners[2].x + lm.voCorners[0].x) / 2,
-                         (lm.voCorners[2].y + lm.voCorners[0].y) / 2};
-        double radius = sqrt(pow(lm.voCorners[2].x - lm.voCorners[0].x, 2) +
-                             pow(lm.voCorners[2].y - lm.voCorners[0].y, 2));
-        circle(img, median, radius, cv::Scalar(163, 101, 0), 2); // FZI Blue
-
-        std::string text = "ID: ";
-        text += std::to_string(lm.nID);
-        cv::Point imgPoint = lm.voCorners.front();
-        imgPoint.x += 25;
-        imgPoint.y += 25;
-        putText(img, text, imgPoint, 2, 0.4, cvScalar(0, 0, 0));
+cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
+                                       const std::vector<ImgLandmark>& landmarks) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  for (auto& lm : landmarks) {
+    // Corners
+    for (auto& imgPoint : lm.corners) {
+      circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
     }
+    // Inner points
+    for (auto& imgPoint : lm.idPoints) {
+      circle(temp, imgPoint, POINT_RADIUS_IMG, FZI_GREEN, POINT_THICKNESS);
+    }
+    // Cluster circle
+    cv::Point median;
+    int radius;
+    getMedianAndRadius({lm.corners[0], lm.corners[2]}, median, radius);
+    circle(temp, median, radius, FZI_BLUE, 2);
+
+    cv::Point imgPoint = lm.corners.front();
+    imgPoint.x += TEXT_OFFSET;
+    imgPoint.y += TEXT_OFFSET;
+    putText(temp,
+            getIDstring(lm.nID),
+            imgPoint,
+            cv::FONT_HERSHEY_DUPLEX,
+            FONT_SCALE,
+            cv::viz::Color::black());
+  }
+  return temp;
 }
 
-void DebugVisualizer::DrawLandmarks(cv::Mat& img,
-                                    const landmark_map_t& landmarks,
-                                    const camera_params_t& camera_intrinsics,
-                                    const pose_t& ego_pose) {
-    cv::Point imgPoint;
-
-    for (auto& lm : landmarks) {
-        for (size_t i = 0; i < lm.second.points.size(); i++) {
-            auto& pt = lm.second.points[i];
-
-            // Convert point into camera frame
-            double x = 0.0;
-            double y = 0.0;
-
-            transformWorldToImg(pt[(int)POINT::X],
-                                pt[(int)POINT::Y],
-                                pt[(int)POINT::Z],
-                                ego_pose.data(),
-                                camera_intrinsics.data(),
-                                &x,
-                                &y);
-            imgPoint.x = static_cast<int>(x);
-            imgPoint.y = static_cast<int>(y);
-
-            /// Corner Points
-            circle(img, imgPoint, 4, cv::Scalar(39, 157, 236), 2); // FZI Red
-        }
-
-        std::string text = "ID: ";
-        text += std::to_string(lm.second.id);
-        imgPoint.x += 25;
-        imgPoint.y += 25;
-        putText(img, text, imgPoint, 2, 0.4, cvScalar(0, 0, 0));
+cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
+                                       const landmark_map_t& landmarks,
+                                       const camera_params_t& camera_intrinsics,
+                                       const pose_t& ego_pose) {
+  cv::Mat temp = img.clone();
+  prepareImg(temp);
+  cv::Point imgPoint;
+  for (auto& lm : landmarks) {
+    for (auto& pt : lm.second.points) {
+      // Convert point into camera frame
+      transformWorldToImgCv(pt, camera_intrinsics, ego_pose, imgPoint);
+      circle(temp, imgPoint, POINT_RADIUS_MAP, FZI_RED, POINT_THICKNESS);
     }
+
+    transformWorldToImgCv(lm.second.points.front(), camera_intrinsics, ego_pose, imgPoint);
+    imgPoint.x += TEXT_OFFSET;
+    imgPoint.y += TEXT_OFFSET - 28. * FONT_SCALE;
+    putText(temp,
+            getIDstring(lm.second.id),
+            imgPoint,
+            cv::FONT_HERSHEY_DUPLEX,
+            FONT_SCALE,
+            cv::viz::Color::black());
+  }
+  return temp;
+}
+
+void DebugVisualizer::transformWorldToImgCv(const Point& p,
+                                            const camera_params_t& camera_intrinsics,
+                                            const pose_t& ego_pose,
+                                            cv::Point& p_img) {
+  double x, y;
+  transformWorldToImg(p[static_cast<int>(POINT::X)],
+                      p[static_cast<int>(POINT::Y)],
+                      p[static_cast<int>(POINT::Z)],
+                      ego_pose.data(),
+                      camera_intrinsics.data(),
+                      &x,
+                      &y);
+  p_img.x = static_cast<int>(x);
+  p_img.y = static_cast<int>(y);
+}
+
+std::string DebugVisualizer::getIDstring(const int id) {
+  std::stringstream textstream;
+  textstream << "ID: " << std::showbase << std::internal << std::setfill('0')
+             << std::setw(6) << std::hex << id;
+  return textstream.str();
+}
+
+void DebugVisualizer::getMedianAndRadius(const std::vector<cv::Point> points,
+                                         cv::Point& median,
+                                         int& radius) {
+  median = cv::Point(0, 0);
+  for (auto& p : points) {
+    median += p;
+  }
+  median *= 1. / points.size();
+
+  double variance = 0.;
+  for (auto& p : points) {
+    variance += std::pow(median.x - p.x, 2) + std::pow(median.y - p.y, 2);
+  }
+  variance /= points.size();
+  radius = static_cast<int>(2 * sqrt(variance));
 }
