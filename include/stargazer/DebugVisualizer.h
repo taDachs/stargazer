@@ -65,8 +65,8 @@ class DebugVisualizer {
   /**
    * @brief Setter for the window mode to use.
    *
-   * @param mode Can be any of CV_WINDOW_NORMAL (set by default),
-   * CV_WINDOW_AUTOSIZE, CV_WINDOW_OPENGL
+   * @param mode Can be any of cv::WINDOW_NORMAL (set by default),
+   * cv::WINDOW_AUTOSIZE, cv::WINDOW_OPENGL
    */
   void SetWindowMode(int mode) { m_window_mode = mode; }
 
@@ -126,7 +126,7 @@ class DebugVisualizer {
   static const int TEXT_OFFSET, POINT_THICKNESS, POINT_RADIUS_IMG, POINT_RADIUS_MAP;
   static const double FONT_SCALE;
   int m_wait_time{1}; /**< Time to wait when displaying image */
-  int m_window_mode{CV_WINDOW_NORMAL}; /**< cvWindowProperty */
+  int m_window_mode{cv::WINDOW_NORMAL}; /**< cvWindowProperty */
   cv::Mat baseImg;                     /**< dummy image */
 
   /**

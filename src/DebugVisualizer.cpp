@@ -40,7 +40,7 @@ const double DebugVisualizer::FONT_SCALE(0.4);
 void DebugVisualizer::prepareImg(cv::Mat& img) {
   if (img.type() == CV_8UC1) {
     // input image is grayscale
-    cvtColor(img, img, CV_GRAY2RGB);
+    cvtColor(img, img, cv::COLOR_GRAY2RGB);
   }
 }
 
