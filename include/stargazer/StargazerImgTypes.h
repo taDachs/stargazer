@@ -19,47 +19,47 @@
 #pragma once
 
 #include <vector>
+
+#include <opencv2/core/types.hpp>
+
 #include "StargazerTypes.h"
-#include "opencv/cv.h"
 
 namespace stargazer {
 
 /**
  * @brief A cluster is an unordered collection of points, it represents a hypothesis for a landmark.
- *
  */
 typedef std::vector<cv::Point> Cluster;
 
 /**
- * @brief An image landmark holds the information of a observed landmark. All coordinates are in image coordinates.
- *
+ * @brief An image landmark holds the information of an observed landmark. All coordinates are in image coordinates.
  */
 struct ImgLandmark {
-    uint16_t nID;                      /**< TODO: describe */
-    std::vector<cv::Point> voCorners;  /**< TODO: describe */
-    std::vector<cv::Point> voIDPoints; /**< TODO: describe */
+  uint16_t nID;                   /**< The detected ID of the landmark */
+  std::vector<cv::Point> corners; /**< The three corners of the landmark */
+  std::vector<cv::Point> idPoints; /**< The inner points of the landmark, which encode the ID */
 };
 
 /**
- * @brief Converts an ImgLandmark to a Map Landmark
+ * @brief Converts an ImgLandmrk to a Map Landmark
  *
  * @param lm_in
  * @return Landmark
  */
 inline Landmark convert2Landmark(ImgLandmark& lm_in) {
-    Landmark lm_out(lm_in.nID);
-    lm_out.points.clear();
+  Landmark lm_out(lm_in.nID);
+  lm_out.points.clear();
 
-    for (auto& el : lm_in.voCorners) {
-        Point pt = {(double)el.x, (double)el.y, 0};
-        lm_out.points.push_back(pt);
-    }
-    for (auto& el : lm_in.voIDPoints) {
-        Point pt = {(double)el.x, (double)el.y, 0};
-        lm_out.points.push_back(pt);
-    }
+  for (auto& el : lm_in.corners) {
+    Point pt = {static_cast<double>(el.x), static_cast<double>(el.y), 0.};
+    lm_out.points.push_back(pt);
+  }
+  for (auto& el : lm_in.idPoints) {
+    Point pt = {static_cast<double>(el.x), static_cast<double>(el.y), 0.};
+    lm_out.points.push_back(pt);
+  }
 
-    return lm_out;
+  return lm_out;
 };
 
-} // namespace stargazer
+}  // namespace stargazer

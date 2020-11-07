@@ -18,108 +18,95 @@
 
 #pragma once
 
+#include <map>
+#include <vector>
+
+#include <ceres/ceres.h>
+
 #include "CoordinateTransformations.h"
 #include "StargazerImgTypes.h"
 
-#include <map>
-#include <vector>
-#include <ceres/ceres.h>
 namespace stargazer {
 
 /**
- * @brief This is the class responsible for map generation. It computes a full bundle adjustment
- * SLAM optimizing all
- * observations of a full calibration sequenz in one optimization problem.
- *
+ * @brief This is the class responsible for map generation. It computes a full
+ * bundle adjustment SLAM optimizing all observations of a full calibration
+ * sequence in one optimization problem.
  */
 class LandmarkCalibrator {
-public:
-    /**
-     * @brief Constructor.
-     *
-     * @param cfgfile Path to map file with camera intrinsics and landmark poses.
-     * @remark The config file has to be generated with ::writeConfig!
-     */
-    LandmarkCalibrator(std::string cfgfile);
+ public:
+  /**
+   * @brief Constructor.
+   *
+   * @param cam_cfgfile Path to file with camera intrinsics.
+   * @param map_cfgfile Path to file with landmark poses.
+   * @remark The config file has to be generated with ::writeConfig!
+   */
+  LandmarkCalibrator(const std::string& cam_cfgfile, const std::string& map_cfgfile);
 
-    /**
-     * @brief Adds all residual blocks to the problem. For every marker of every seen landmark at
-     * every pose a residual
-     * block is added to the problem.
-     *
-     * @param observed_poses    Initial guess of the cameras poses
-     * @param observed_landmarks    Vector of all observed Image landmarks
-     */
-    void AddReprojectionResidualBlocks(
-        const std::vector<pose_t>& observed_poses,
-        const std::vector<std::vector<ImgLandmark>>& observed_landmarks);
+  /**
+   * @brief Adds all residual blocks to the problem. For every marker of every
+   * seen landmark at every pose a residual block is added to the problem.
+   *
+   * @param observed_poses Initial guess of the cameras poses
+   * @param observed_landmarks Vector of all observed Image landmarks
+   */
+  void AddReprojectionResidualBlocks(const std::vector<pose_t>& observed_poses,
+                                     const std::vector<std::vector<ImgLandmark>>& observed_landmarks);
 
-    /**
-     * @brief Main worker function. It calls the solver of the underlying ceres library.
-     *
-     */
-    void Optimize();
-    /**
-     * @brief Sets some of the parameters constant. (Unused, debugging only)
-     *
-     */
-    void SetParametersConstant();
-    /**
-     * @brief Sets an individual landmarks pose constant. This is usefull, for fixing the maps
-     * coordinate system to one
-     * landmark.
-     *
-     * @param id    Id of the landmark to hold constant.
-     */
-    void SetLandmarkConstant(landmark_map_t::key_type id);
-    /**
-     * @brief Sets an individual camera pose constant. This is usefull, for fixing the maps
-     * coordinate system to one
-     * pose (normally the first).
-     *
-     * @param id
-     */
-    void SetPoseConstant(size_t id);
-    /**
-     * @brief Removes all parameter and residual blocks from the problem. So that one can start from
-     * scratch.
-     *
-     */
-    void ClearProblem();
+  /**
+   * @brief Main worker function. It calls the solver of the underlying ceres library.
+   */
+  void Optimize();
 
-    /**
-     * @brief Getter for the cameras' optimized intrinsic parameters
-     *
-     * @return const camera_params_t
-     */
-    const camera_params_t& getIntrinsics() const {
-        return camera_intrinsics_;
-    }
+  /**
+   * @brief Sets the camera intrinsics constant. Useful if the camera calibration is already done.
+   */
+  void SetIntrinsicsConstant();
 
-    /**
-     * @brief Getter for map of optimized landmarks
-     *
-     * @return const landmark_map_t
-     */
-    const landmark_map_t& getLandmarks() const {
-        return landmarks_;
-    }
+  /**
+   * @brief Removes all parameter and residual blocks from the problem. So that
+   * one can start from scratch.
+   *
+   */
+  void ClearProblem();
 
-    /**
-     * @brief Getter for the optimized camera poses.
-     *
-     * @return const std::vector<pose_t>
-     */
-    const std::vector<pose_t>& getPoses() const {
-        return camera_poses_;
-    }
+  /**
+   * @brief Sets two poses of two individual landmarks partially constant (0).
+   * This is useful, for fixing the maps coordinate system in a robust way.
+   *
+   * @param id_origin   Id of the landmark to set x and y to zero.
+   * @param id_xaxis    Id of the landmark to set y to zero.
+   */
+  void SetLandmarksOriginAndXAxis(landmark_map_t::key_type id_origin,
+                                  landmark_map_t::key_type id_xaxis);
 
-private:
-    ceres::Problem problem;             /**< Ceres problem */
-    camera_params_t camera_intrinsics_; /**< Camera parameters */
-    landmark_map_t
-        landmarks_; /**< Map of landmarks. Points have to be defined in landmark coordinates!*/
-    std::vector<pose_t> camera_poses_; /**< Camera poses */
+  /**
+   * @brief Getter for the cameras' optimized intrinsic parameters
+   *
+   * @return const camera_params_t
+   */
+  const camera_params_t& getIntrinsics() const { return camera_intrinsics_; }
+
+  /**
+   * @brief Getter for map of optimized landmarks
+   *
+   * @return const landmark_map_t
+   */
+  const landmark_map_t& getLandmarks() const { return landmarks_; }
+
+  /**
+   * @brief Getter for the optimized camera poses.
+   *
+   * @return const std::vector<pose_t>
+   */
+  const std::vector<pose_t>& getPoses() const { return camera_poses_; }
+
+ private:
+  ceres::Problem problem;             /**< Ceres problem */
+  camera_params_t camera_intrinsics_; /**< Camera parameters */
+  landmark_map_t landmarks_; /**< Map of landmarks. Points have to be defined in landmark coordinates!*/
+  std::vector<pose_t> camera_poses_; /**< Camera poses */
 };
 
-} // namespace stargazer
+}  // namespace stargazer
