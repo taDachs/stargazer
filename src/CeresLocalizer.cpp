@@ -18,9 +18,9 @@
 
 #include "CeresLocalizer.h"
 
-#include <limits>
-
 #include <ceres/ceres.h>
+
+#include <limits>
 
 #include "internal/CostFunction.h"
 
@@ -88,6 +88,7 @@ void CeresLocalizer::ClearResidualBlocks() {
 }
 
 void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
+  constexpr int NUM_CORNERS = 3;
   for (auto& img_lm : img_landmarks) {
 
     if (img_lm.idPoints.size() + img_lm.corners.size() !=
@@ -100,23 +101,24 @@ void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
     };
 
     // Add residual block, for every one of the seen points.
-    for (size_t k = 0; k < landmarks[img_lm.nID].points.size(); k++) {
+    for (size_t k = 0; k < NUM_CORNERS; k++) {
       ceres::CostFunction* cost_function;
-      if (k < 3) {
-        cost_function = WorldToImageReprojectionFunctor::Create(
-            img_lm.corners[k].x,
-            img_lm.corners[k].y,
-            landmarks[img_lm.nID].points[k][(int)POINT::X],
-            landmarks[img_lm.nID].points[k][(int)POINT::Y],
-            landmarks[img_lm.nID].points[k][(int)POINT::Z]);
-      } else {
-        cost_function = WorldToImageReprojectionFunctor::Create(
-            img_lm.idPoints[k - 3].x,
-            img_lm.idPoints[k - 3].y,
-            landmarks[img_lm.nID].points[k][(int)POINT::X],
-            landmarks[img_lm.nID].points[k][(int)POINT::Y],
-            landmarks[img_lm.nID].points[k][(int)POINT::Z]);
-      }
+      // if (k < NUM_CORNERS) {
+      cost_function = WorldToImageReprojectionFunctor::Create(
+          img_lm.corners[k].x,
+          img_lm.corners[k].y,
+          landmarks[img_lm.nID].points[k][(int)POINT::X],
+          landmarks[img_lm.nID].points[k][(int)POINT::Y],
+          landmarks[img_lm.nID].points[k][(int)POINT::Z]);
+      // Don't use inner points for localization (speeds up optimization by approximately by factor 2)
+      // } else {
+      //   cost_function = WorldToImageReprojectionFunctor::Create(
+      //       img_lm.idPoints[k - NUM_CORNERS].x,
+      //       img_lm.idPoints[k - NUM_CORNERS].y,
+      //       landmarks[img_lm.nID].points[k][(int)POINT::X],
+      //       landmarks[img_lm.nID].points[k][(int)POINT::Y],
+      //       landmarks[img_lm.nID].points[k][(int)POINT::Z]);
+      // }
       // CauchyLoss(9): a pixel-error of 3 is still considered as inlayer
       problem.AddResidualBlock(cost_function,
                                new ceres::CauchyLoss(9),
