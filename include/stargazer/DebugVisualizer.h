@@ -18,12 +18,20 @@
 
 #pragma once
 
+#include <iomanip>
 #include <opencv2/highgui/highgui.hpp>
 
 #include "StargazerImgTypes.h"
 #include "StargazerTypes.h"
 
 namespace stargazer {
+
+inline std::string getHexIDstring(int id) {
+  std::stringstream textstream;
+  textstream << std::showbase << std::internal << std::setfill('0')
+             << std::setw(6) << std::hex << id;
+  return textstream.str();
+}
 
 /**
  * @brief This class is used for debugging. It contains several methods for
@@ -146,8 +154,6 @@ class DebugVisualizer {
                              const camera_params_t& camera_intrinsics,
                              const pose_t& ego_pos,
                              cv::Point& p_img);
-
-  std::string getIDstring(const int);
 
   void getMedianAndRadius(const std::vector<cv::Point> points, cv::Point& median, int& radius);
 };

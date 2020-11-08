@@ -18,8 +18,6 @@
 
 #include "DebugVisualizer.h"
 
-#include <iomanip>
-
 #include <opencv2/imgproc.hpp>
 #include <opencv2/viz/types.hpp>
 
@@ -129,7 +127,7 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET;
     putText(temp,
-            getIDstring(lm.nID),
+            "ID: " + getHexIDstring(lm.nID),
             imgPoint,
             cv::FONT_HERSHEY_DUPLEX,
             FONT_SCALE,
@@ -156,7 +154,7 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
     imgPoint.x += TEXT_OFFSET;
     imgPoint.y += TEXT_OFFSET - 28. * FONT_SCALE;
     putText(temp,
-            getIDstring(lm.second.id),
+            "ID: " + getHexIDstring(lm.second.id),
             imgPoint,
             cv::FONT_HERSHEY_DUPLEX,
             FONT_SCALE,
@@ -179,13 +177,6 @@ void DebugVisualizer::transformWorldToImgCv(const Point& p,
                       &y);
   p_img.x = static_cast<int>(x);
   p_img.y = static_cast<int>(y);
-}
-
-std::string DebugVisualizer::getIDstring(const int id) {
-  std::stringstream textstream;
-  textstream << "ID: " << std::showbase << std::internal << std::setfill('0')
-             << std::setw(6) << std::hex << id;
-  return textstream.str();
 }
 
 void DebugVisualizer::getMedianAndRadius(const std::vector<cv::Point> points,
