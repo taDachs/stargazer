@@ -23,6 +23,8 @@
 
 namespace stargazer {
 
+constexpr int NUM_CORNERS = 3;
+
 /**
  * @brief Definition of the six pose parameters. The rotation angles are given as rodriguez angles
  *

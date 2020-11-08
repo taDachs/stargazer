@@ -88,7 +88,6 @@ void CeresLocalizer::ClearResidualBlocks() {
 }
 
 void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
-  constexpr int NUM_CORNERS = 3;
   for (auto& img_lm : img_landmarks) {
 
     if (img_lm.idPoints.size() + img_lm.corners.size() !=

@@ -36,7 +36,7 @@ typedef std::vector<cv::Point> Cluster;
  */
 struct ImgLandmark {
   uint16_t nID;                   /**< The detected ID of the landmark */
-  std::vector<cv::Point> corners; /**< The three corners of the landmark */
+  std::array<cv::Point, NUM_CORNERS> corners; /**< The three corners of the landmark */
   std::vector<cv::Point> idPoints; /**< The inner points of the landmark, which encode the ID */
 };
 
