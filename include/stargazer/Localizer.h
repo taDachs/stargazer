@@ -63,9 +63,9 @@ class Localizer {
   /**
    * @brief Getter for computed pose from last call to Localizer::UpdatePose
    *
-   * @return const pose_t 6D Pose of the camera
+   * @return const Pose 6D Pose of the camera
    */
-  const pose_t getPose() const { return ego_pose; }
+  const Pose getPose() const { return ego_pose; }
 
   /**
    * @brief Getter for map of landmarks
@@ -84,7 +84,8 @@ class Localizer {
  protected:
   std::map<int, Landmark> landmarks; /**< Map of landmarks, read from config */
   camera_params_t camera_intrinsics = {{0., 0., 0., 0.}}; /**< Parameters of camera, read from config*/
-  pose_t ego_pose = {{0., 0., 0., 0., 0., 0.}}; /**< Ego pose as computed by last call to Localizer::UpdatePose */
+
+  Pose ego_pose = {{{0., 0., 0.}}, {{0., 0., 0., 1.}}}; /**< Ego pose as computed by last call to Localizer::UpdatePose */
 };
 
 }  // namespace stargazer

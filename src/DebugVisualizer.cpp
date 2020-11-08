@@ -139,7 +139,7 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
 cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
                                        const landmark_map_t& landmarks,
                                        const camera_params_t& camera_intrinsics,
-                                       const pose_t& ego_pose) {
+                                       const Pose& ego_pose) {
   cv::Mat temp = img.clone();
   prepareImg(temp);
   cv::Point imgPoint;
@@ -165,13 +165,14 @@ cv::Mat DebugVisualizer::DrawLandmarks(const cv::Mat& img,
 
 void DebugVisualizer::transformWorldToImgCv(const Point& p,
                                             const camera_params_t& camera_intrinsics,
-                                            const pose_t& ego_pose,
+                                            const Pose& ego_pose,
                                             cv::Point& p_img) {
   double x, y;
   transformWorldToImg(p[static_cast<int>(POINT::X)],
                       p[static_cast<int>(POINT::Y)],
                       p[static_cast<int>(POINT::Z)],
-                      ego_pose.data(),
+                      ego_pose.position.data(),
+                      ego_pose.orientation.data(),
                       camera_intrinsics.data(),
                       &x,
                       &y);

@@ -30,7 +30,7 @@ LandmarkCalibrator::LandmarkCalibrator(const std::string& cam_cfgfile,
 };
 
 void LandmarkCalibrator::AddReprojectionResidualBlocks(
-    const std::vector<pose_t>& observed_poses,
+    const std::vector<Pose>& observed_poses,
     const std::vector<std::vector<ImgLandmark>>& observed_landmarks) {
 
   if (observed_landmarks.size() != observed_poses.size())
@@ -68,8 +68,10 @@ void LandmarkCalibrator::AddReprojectionResidualBlocks(
         double u, v;
         transformLandMarkToImage<double>(real_lm.points[k][(int)POINT::X],
                                          real_lm.points[k][(int)POINT::Y],
-                                         real_lm.pose.data(),
-                                         camera_poses_[i].data(),
+                                         real_lm.pose.position.data(),
+                                         real_lm.pose.orientation.data(),
+                                         camera_poses_[i].position.data(),
+                                         camera_poses_[i].orientation.data(),
                                          camera_intrinsics_.data(),
                                          &u,
                                          &v);
@@ -85,15 +87,17 @@ void LandmarkCalibrator::AddReprojectionResidualBlocks(
                                                              // Alternatively: new
                                  // ceres::ScaledLoss(NULL, w_v_des,
                                  // ceres::TAKE_OWNERSHIP),
-                                 real_lm.pose.data(),
-                                 camera_poses_[i].data(),
+                                 real_lm.pose.position.data(),
+                                 real_lm.pose.orientation.data(),
+                                 camera_poses_[i].position.data(),
+                                 camera_poses_[i].orientation.data(),
                                  camera_intrinsics_.data());
       }
     }
     problem.SetParameterization(
-        camera_poses_[i].data(),
-        new ceres::SubsetParameterization((int)POSE::N_PARAMS, {{(int)POSE::Z}}));
-    camera_poses_[i][(int)POSE::Z] = 0.0;
+        camera_poses_[i].position.data(),
+        new ceres::SubsetParameterization((int)POINT::N_PARAMS, {{(int)POINT::Z}}));
+    camera_poses_[i].position[(int)POINT::Z] = 0.;
   }
 }
 
@@ -120,22 +124,23 @@ void LandmarkCalibrator::Optimize() {
 
 void LandmarkCalibrator::SetLandmarksOriginAndXAxis(landmark_map_t::key_type id_origin,
                                                     landmark_map_t::key_type id_xaxis) {
-  if (problem.HasParameterBlock(landmarks_[id_origin].pose.data())) {
-    problem.SetParameterization(landmarks_[id_origin].pose.data(),
-                                new ceres::SubsetParameterization(
-                                    (int)POSE::N_PARAMS, {{(int)POSE::X, (int)POSE::Y}}));
-    landmarks_[id_origin].pose[(int)POSE::X] = 0.0;
-    landmarks_[id_origin].pose[(int)POSE::Y] = 0.0;
+  if (problem.HasParameterBlock(landmarks_[id_origin].pose.position.data())) {
+    problem.SetParameterization(
+        landmarks_[id_origin].pose.position.data(),
+        new ceres::SubsetParameterization((int)POINT::N_PARAMS,
+                                          {{(int)POINT::X, (int)POINT::Y}}));
+    landmarks_[id_origin].pose.position[(int)POINT::X] = 0.;
+    landmarks_[id_origin].pose.position[(int)POINT::Y] = 0.;
   } else {
     throw std::runtime_error(
         "No parameter used of landmark that should get fixed");
   }
 
-  if (problem.HasParameterBlock(landmarks_[id_xaxis].pose.data()))
+  if (problem.HasParameterBlock(landmarks_[id_xaxis].pose.position.data()))
     problem.SetParameterization(
-        landmarks_[id_xaxis].pose.data(),
-        new ceres::SubsetParameterization((int)POSE::N_PARAMS, {{(int)POSE::Y}}));
-  landmarks_[id_xaxis].pose[(int)POSE::Y] = 0.0;
+        landmarks_[id_xaxis].pose.position.data(),
+        new ceres::SubsetParameterization((int)POINT::N_PARAMS, {{(int)POINT::Y}}));
+  landmarks_[id_xaxis].pose.position[(int)POINT::Y] = 0.;
 }
 
 void LandmarkCalibrator::SetIntrinsicsConstant() {

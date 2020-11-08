@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include "ceres/ceres.h"
-
 #include "../CoordinateTransformations.h"
 #include "../StargazerTypes.h"
+#include "ceres/ceres.h"
 
 namespace stargazer {
 
@@ -59,8 +58,10 @@ struct LandMarkToImageReprojectionFunctor {
    * @param residuals Residual array
    * @return bool Flag indicating success or failure
    */
-  bool operator()(const T* const landmark_pose,
-                  const T* const camera_pose,
+  bool operator()(const T* const landmark_position,
+                  const T* const landmark_orientation,
+                  const T* const camera_position,
+                  const T* const camera_orientation,
                   const T* const camera_intrinsics,
                   T* residuals) const {
 
@@ -68,8 +69,15 @@ struct LandMarkToImageReprojectionFunctor {
     T u_marker = T(0.0);
     T v_marker = T(0.0);
 
-    transformLandMarkToImage<T>(
-        T(x_marker), T(y_marker), landmark_pose, camera_pose, camera_intrinsics, &u_marker, &v_marker);
+    transformLandMarkToImage<T>(T(x_marker),
+                                T(y_marker),
+                                landmark_position,
+                                landmark_orientation,
+                                camera_position,
+                                camera_orientation,
+                                camera_intrinsics,
+                                &u_marker,
+                                &v_marker);
 
     // Compute residual
     residuals[0] = u_marker - T(u_observed);
@@ -91,7 +99,13 @@ struct LandMarkToImageReprojectionFunctor {
                                      const double v_observed,
                                      const double x_marker,
                                      const double y_marker) {
-    return (new ceres::AutoDiffCostFunction<LandMarkToImageReprojectionFunctor, 2, (int)POSE::N_PARAMS, (int)POSE::N_PARAMS, (int)INTRINSICS::N_PARAMS>(
+    return (new ceres::AutoDiffCostFunction<LandMarkToImageReprojectionFunctor,
+                                            2,
+                                            (int)POINT::N_PARAMS,  // landmark
+                                            (int)QUAT::N_PARAMS,
+                                            (int)POINT::N_PARAMS,  // camera
+                                            (int)QUAT::N_PARAMS,
+                                            (int)INTRINSICS::N_PARAMS>(
         new LandMarkToImageReprojectionFunctor(u_observed, v_observed, x_marker, y_marker)));
   }
 };
@@ -134,14 +148,23 @@ struct WorldToImageReprojectionFunctor {
    * @param residuals Residual array
    * @return bool Flag indicating success or failure
    */
-  bool operator()(const T* const camera_pose, const T* const camera_intrinsics, T* residuals) const {
+  bool operator()(const T* const camera_position,
+                  const T* const camera_orientation,
+                  const T* const camera_intrinsics,
+                  T* residuals) const {
 
     // Transform landmark point to camera
     T u_marker = T(0.0);
     T v_marker = T(0.0);
 
-    transformWorldToImg<T>(
-        T(x_marker), T(y_marker), T(z_marker), camera_pose, camera_intrinsics, &u_marker, &v_marker);
+    transformWorldToImg<T>(T(x_marker),
+                           T(y_marker),
+                           T(z_marker),
+                           camera_position,
+                           camera_orientation,
+                           camera_intrinsics,
+                           &u_marker,
+                           &v_marker);
 
     // Compute residual
     residuals[0] = u_marker - T(u_observed);
@@ -165,9 +188,10 @@ struct WorldToImageReprojectionFunctor {
                                      const double x_marker,
                                      const double y_marker,
                                      const double z_marker) {
-    return (new ceres::AutoDiffCostFunction<WorldToImageReprojectionFunctor, 2, (int)POSE::N_PARAMS, (int)INTRINSICS::N_PARAMS>(
-        new WorldToImageReprojectionFunctor(
-            u_observed, v_observed, x_marker, y_marker, z_marker)));
+    return (
+        new ceres::AutoDiffCostFunction<WorldToImageReprojectionFunctor, 2, (int)POINT::N_PARAMS, (int)QUAT::N_PARAMS, (int)INTRINSICS::N_PARAMS>(
+            new WorldToImageReprojectionFunctor(
+                u_observed, v_observed, x_marker, y_marker, z_marker)));
   }
 };
 

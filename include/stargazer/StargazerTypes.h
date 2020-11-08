@@ -26,10 +26,16 @@ namespace stargazer {
 constexpr int NUM_CORNERS = 3;
 
 /**
- * @brief Definition of the six pose parameters. The rotation angles are given as rodriguez angles
+ * @brief Definition of a orientation using a quaternion (wxyz is ceres' default)
  *
  */
-enum struct POSE { X, Y, Z, Rx, Ry, Rz, N_PARAMS };
+enum struct QUAT { W, X, Y, Z, N_PARAMS };
+
+/**
+ * @brief Definition of the three position parameters of a point
+ *
+ */
+enum struct POINT { X, Y, Z, N_PARAMS };
 
 /**
  * @brief Definition of the intrinsic camera parameters
@@ -38,25 +44,24 @@ enum struct POSE { X, Y, Z, Rx, Ry, Rz, N_PARAMS };
 enum struct INTRINSICS { fu, fv, u0, v0, N_PARAMS };
 
 /**
- * @brief Definition of the three position parmaters of a point
- *
- */
-enum struct POINT { X, Y, Z, N_PARAMS };
-
-/**
  * @brief A point is a 3D translation-only position. See ::POINT for the indexing scheme.
  */
 typedef std::array<double, (int)POINT::N_PARAMS> Point;
 
 /**
+ * @brief A point is a 3D translation-only position. See ::POINT for the indexing scheme.
+ */
+typedef std::array<double, (int)QUAT::N_PARAMS> Quaternion;
+
+struct Pose {
+  Point position;
+  Quaternion orientation;
+};
+
+/**
  * @brief This object hold the camera parameters. See ::INTRINSICS for the indexing scheme.
  */
 typedef std::array<double, (int)INTRINSICS::N_PARAMS> camera_params_t;
-
-/**
- * @brief This object hold the parameters of a translation and orientation pose. See ::POSE for the indexing scheme.
- */
-typedef std::array<double, (int)POSE::N_PARAMS> pose_t;
 
 /**
  * @brief Point generator function for a given ID.
@@ -101,8 +106,8 @@ struct Landmark {
    */
   Landmark(int ID) : id(ID), points(getLandmarkPoints(ID)) {}
 
-  int id; /**< The landmarks id */
-  std::array<double, static_cast<int>(POSE::N_PARAMS)> pose = {{0., 0., 0., 0., 0., 0.}}; /**< The landmarks pose */
+  int id;                                           /**< The landmarks id */
+  Pose pose = {{{0., 0., 0.}}, {{0., 0., 0., 1.}}}; /**< The landmarks pose */
   std::vector<Point> points; /**< Vector of landmark points. The first three are the corners */
   static constexpr int kGridCount = 4; /**< Number of rows and columns of a landmark */
   static constexpr double kGridDistance =

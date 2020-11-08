@@ -1,5 +1,6 @@
 #include <CeresLocalizer.h>
 #include <DebugVisualizer.h>
+
 #include "LandmarkFinder.h"
 
 using namespace stargazer;
@@ -46,15 +47,16 @@ int main(int argc, char** argv) {
   localizer.UpdatePose(detected_landmarks, 0.0);
   cout << localizer.getSummary().FullReport() << endl << endl;
 
-  pose_t pose = localizer.getPose();
+  Pose pose = localizer.getPose();
   // clang-format off
   cout << "Pose is"
-       << " x=" << pose[(int)POSE::X]
-       << " y=" << pose[(int)POSE::Y]
-       << " z=" << pose[(int)POSE::Z]
-       << " rx=" << pose[(int)POSE::Rx]
-       << " ry=" << pose[(int)POSE::Ry]
-       << " rz=" << pose[(int)POSE::Rz] << endl;
+       << " x=" << pose.position[(int)POINT::X]
+       << " y=" << pose.position[(int)POINT::Y]
+       << " z=" << pose.position[(int)POINT::Z]
+       << " qw=" << pose.orientation[(int)QUAT::W]
+       << " qx=" << pose.orientation[(int)QUAT::X]
+       << " qy=" << pose.orientation[(int)QUAT::Y]
+       << " qz=" << pose.orientation[(int)QUAT::Z] << endl;
   // clang-format on
 
   return EXIT_SUCCESS;

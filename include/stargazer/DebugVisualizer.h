@@ -127,7 +127,7 @@ class DebugVisualizer {
   cv::Mat DrawLandmarks(const cv::Mat& img,
                         const landmark_map_t& landmarks,
                         const camera_params_t& camera_intrinsics,
-                        const pose_t& ego_pose);
+                        const Pose& ego_pose);
 
  private:
   static const cv::Scalar FZI_BLUE, FZI_GREEN, FZI_RED;
@@ -152,7 +152,7 @@ class DebugVisualizer {
    */
   void transformWorldToImgCv(const Point& p,
                              const camera_params_t& camera_intrinsics,
-                             const pose_t& ego_pos,
+                             const Pose& ego_pos,
                              cv::Point& p_img);
 
   void getMedianAndRadius(const std::vector<cv::Point> points, cv::Point& median, int& radius);

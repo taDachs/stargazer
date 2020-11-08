@@ -18,10 +18,10 @@
 
 #pragma once
 
+#include <ceres/ceres.h>
+
 #include <map>
 #include <vector>
-
-#include <ceres/ceres.h>
 
 #include "CoordinateTransformations.h"
 #include "StargazerImgTypes.h"
@@ -51,7 +51,7 @@ class LandmarkCalibrator {
    * @param observed_poses Initial guess of the cameras poses
    * @param observed_landmarks Vector of all observed Image landmarks
    */
-  void AddReprojectionResidualBlocks(const std::vector<pose_t>& observed_poses,
+  void AddReprojectionResidualBlocks(const std::vector<Pose>& observed_poses,
                                      const std::vector<std::vector<ImgLandmark>>& observed_landmarks);
 
   /**
@@ -98,15 +98,15 @@ class LandmarkCalibrator {
   /**
    * @brief Getter for the optimized camera poses.
    *
-   * @return const std::vector<pose_t>
+   * @return const std::vector<Pose>
    */
-  const std::vector<pose_t>& getPoses() const { return camera_poses_; }
+  const std::vector<Pose>& getPoses() const { return camera_poses_; }
 
  private:
   ceres::Problem problem;             /**< Ceres problem */
   camera_params_t camera_intrinsics_; /**< Camera parameters */
   landmark_map_t landmarks_; /**< Map of landmarks. Points have to be defined in landmark coordinates!*/
-  std::vector<pose_t> camera_poses_; /**< Camera poses */
+  std::vector<Pose> camera_poses_; /**< Camera poses */
 };
 
 }  // namespace stargazer

@@ -37,8 +37,13 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
   for (auto& el : landmarks) {
     for (auto& pt : el.second.points) {
       double x, y, z;
-      transformLandMarkToWorld(
-          pt[(int)POINT::X], pt[(int)POINT::Y], el.second.pose.data(), &x, &y, &z);
+      transformLandMarkToWorld(pt[(int)POINT::X],
+                               pt[(int)POINT::Y],
+                               el.second.pose.position.data(),
+                               el.second.pose.orientation.data(),
+                               &x,
+                               &y,
+                               &z);
       pt = {x, y, z};
       z_upper_bound = std::min(z_upper_bound, z);
     }
@@ -55,12 +60,13 @@ void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float d
   }
 
   if (!is_initialized) {
+    // TODO std::accumulate
     for (auto& el : img_landmarks) {
-      ego_pose[(int)POSE::X] += landmarks[el.nID].pose[(int)POSE::X];
-      ego_pose[(int)POSE::Y] += landmarks[el.nID].pose[(int)POSE::Y];
+      ego_pose.position[(int)POINT::X] += landmarks[el.nID].pose.position[(int)POINT::X];
+      ego_pose.position[(int)POINT::Y] += landmarks[el.nID].pose.position[(int)POINT::Y];
     }
-    ego_pose[(int)POSE::X] /= img_landmarks.size();
-    ego_pose[(int)POSE::Y] /= img_landmarks.size();
+    ego_pose.position[(int)POINT::X] /= img_landmarks.size();
+    ego_pose.position[(int)POINT::Y] /= img_landmarks.size();
     // is_initialized = true;
   }
 
@@ -72,8 +78,20 @@ void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float d
 
   // Prevents local minimum with all points behind camera (allowed by camera model)
   // Assumes that camera is approximately looking into positive z direction (map)
-  if (problem.HasParameterBlock(ego_pose.data()))
-    problem.SetParameterUpperBound(ego_pose.data(), (int)POSE::Z, z_upper_bound);
+  if (problem.HasParameterBlock(ego_pose.position.data()))
+    problem.SetParameterUpperBound(ego_pose.position.data(), (int)POINT::Z, z_upper_bound);
+
+  // Set Quaternion Paramterization (4 variables but 3 dof)
+  static bool is_local_parametrization_set = false;
+  if (problem.HasParameterBlock(ego_pose.orientation.data()) && !is_local_parametrization_set) {
+    problem.SetParameterization(ego_pose.orientation.data(),
+                                new ceres::QuaternionParameterization());
+    is_local_parametrization_set = true;
+  }
+
+  // Set Camera Parameters Constant
+  if (problem.HasParameterBlock(camera_intrinsics.data()))
+    problem.SetParameterBlockConstant(camera_intrinsics.data());
 
   // Optimize
   Optimize();
@@ -109,8 +127,8 @@ void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
           landmarks[img_lm.nID].points[k][(int)POINT::X],
           landmarks[img_lm.nID].points[k][(int)POINT::Y],
           landmarks[img_lm.nID].points[k][(int)POINT::Z]);
-      // Don't use inner points for localization (speeds up optimization by approximately by factor 2)
-      // } else {
+      // Don't use inner points for localization (speeds up optimization by
+      // approximately by factor 2) } else {
       //   cost_function = WorldToImageReprojectionFunctor::Create(
       //       img_lm.idPoints[k - NUM_CORNERS].x,
       //       img_lm.idPoints[k - NUM_CORNERS].y,
@@ -121,30 +139,29 @@ void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
       // CauchyLoss(9): a pixel-error of 3 is still considered as inlayer
       problem.AddResidualBlock(cost_function,
                                new ceres::CauchyLoss(9),
-                               ego_pose.data(),
+                               ego_pose.position.data(),
+                               ego_pose.orientation.data(),
                                camera_intrinsics.data());
     }
   }
   if (!is_initialized) {
-    std::vector<int> constant_parameters = {};
     if (estimate_2d_pose) {
-      constant_parameters.push_back((int)POSE::Z);
-      constant_parameters.push_back((int)POSE::Rx);
-      constant_parameters.push_back((int)POSE::Ry);
-      problem.SetParameterization(ego_pose.data(),
+
+      problem.SetParameterization(ego_pose.position.data(),
                                   new ceres::SubsetParameterization(
-                                      (int)POSE::N_PARAMS, constant_parameters));
-      ego_pose[(int)POSE::Z] = 0.0;
+                                      (int)POINT::N_PARAMS, {{(int)POINT::Z}}));
+
+      problem.SetParameterization(
+          ego_pose.orientation.data(),
+          new ceres::SubsetParameterization((int)QUAT::N_PARAMS,
+                                            {{(int)QUAT::X, (int)QUAT::Y}}));
+
+      ego_pose.position[(int)POINT::Z] = 0.;
+      ego_pose.orientation[(int)QUAT::X] = 0.;
+      ego_pose.orientation[(int)QUAT::Y] = 0.;
     }
     is_initialized = true;
   }
-  SetCameraParamsConstant();
-}
-
-void CeresLocalizer::SetCameraParamsConstant() {
-  // Set Camera Parameters Constant
-  if (problem.HasParameterBlock(camera_intrinsics.data()))
-    problem.SetParameterBlockConstant(camera_intrinsics.data());
 }
 
 void CeresLocalizer::Optimize() {

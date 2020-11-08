@@ -18,12 +18,12 @@
 
 #pragma once
 
+#include <yaml-cpp/yaml.h>
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
-
-#include <yaml-cpp/yaml.h>
 
 #include "StargazerTypes.h"
 
@@ -80,16 +80,19 @@ inline void readMapConfig(const std::string& cfgfile, landmark_map_t& landmarks)
   if (config["Landmarks"]) {
     for (size_t i = 0; i < config["Landmarks"].size(); i++) {
       auto lm = config["Landmarks"][i];
+
       int id = lm["HexID"].as<int>();
-      pose_t lm_pose;
-      lm_pose[(int)POSE::X] = lm["x"].as<double>();
-      lm_pose[(int)POSE::Y] = lm["y"].as<double>();
-      lm_pose[(int)POSE::Z] = lm["z"].as<double>();
-      lm_pose[(int)POSE::Rx] = lm["rx"].as<double>();
-      lm_pose[(int)POSE::Ry] = lm["ry"].as<double>();
-      lm_pose[(int)POSE::Rz] = lm["rz"].as<double>();
       landmarks[id] = Landmark(id);
-      landmarks[id].pose = lm_pose;
+
+      Pose pose;
+      pose.position[(int)POINT::X] = lm["x"].as<double>();
+      pose.position[(int)POINT::Y] = lm["y"].as<double>();
+      pose.position[(int)POINT::Z] = lm["z"].as<double>();
+      pose.orientation[(int)QUAT::W] = lm["qw"].as<double>();
+      pose.orientation[(int)QUAT::X] = lm["qx"].as<double>();
+      pose.orientation[(int)QUAT::Y] = lm["qy"].as<double>();
+      pose.orientation[(int)QUAT::Z] = lm["qz"].as<double>();
+      landmarks[id].pose = pose;
     }
   } else {
     std::string msg = "Stargazer map config file is missing Landmarks!: " + cfgfile;
@@ -127,15 +130,14 @@ inline void writeMapConfig(const std::string& cfgfile, const landmark_map_t& lan
   fout << "Landmarks:\n";
   for (auto& entry : landmarks) {
     fout << " - {";
-    fout << " HexID: "
-         << "0x" << std::setfill('0') << std::setw(4) << std::hex << entry.first
-         << std::setfill(' ');
-    fout << ", x: " << std::setw(8) << entry.second.pose[(int)POSE::X];
-    fout << ", y: " << std::setw(8) << entry.second.pose[(int)POSE::Y];
-    fout << ", z: " << std::setw(8) << entry.second.pose[(int)POSE::Z];
-    fout << ", rx: " << std::setw(8) << entry.second.pose[(int)POSE::Rx];
-    fout << ", ry: " << std::setw(8) << entry.second.pose[(int)POSE::Ry];
-    fout << ", rz: " << std::setw(8) << entry.second.pose[(int)POSE::Rz];
+    fout << " HexID: " << "0x" << std::setfill('0') << std::setw(4) << std::hex << entry.first << std::setfill(' ');
+    fout << ", x: " << std::fixed << std::setw(8) << entry.second.pose.position[(int)POINT::X];
+    fout << ", y: " << std::fixed << std::setw(8) << entry.second.pose.position[(int)POINT::Y];
+    fout << ", z: " << std::fixed << std::setw(8) << entry.second.pose.position[(int)POINT::Z];
+    fout << ", qx: " << std::fixed << std::setw(8) << entry.second.pose.orientation[(int)QUAT::X];
+    fout << ", qy: " << std::fixed << std::setw(8) << entry.second.pose.orientation[(int)QUAT::Y];
+    fout << ", qz: " << std::fixed << std::setw(8) << entry.second.pose.orientation[(int)QUAT::Z];
+    fout << ", qw: " << std::fixed << std::setw(8) << entry.second.pose.orientation[(int)QUAT::W];
     fout << " }\n";
   }
 

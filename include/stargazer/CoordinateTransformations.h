@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <iostream>
-
 #include <ceres/rotation.h>
+
+#include <iostream>
 
 #include "StargazerTypes.h"
 
@@ -31,7 +31,8 @@ namespace stargazer {
  *
  * @param x_landmark  x value of input point in landmark coordinates
  * @param y_landmark  y value of input point in landmark coordinates
- * @param landmark_pose the six dimensional pose of the landmark (rotation in rodriguez angles)
+ * @param landmark_position the position of the landmark
+ * @param landmark_orientation the orientation of the landmark (as quaternion)
  * @param x_world x value of ouput point in world coordinates
  * @param y_world y value of ouput point in world coordinates
  * @param z_world z value of ouput point in world coordinates
@@ -39,7 +40,8 @@ namespace stargazer {
 template <typename T>
 void transformLandMarkToWorld(const T& x_landmark,
                               const T& y_landmark,
-                              const T* const landmark_pose,
+                              const T* const landmark_position,
+                              const T* const landmark_orientation,
                               T* const x_world,
                               T* const y_world,
                               T* const z_world) {
@@ -48,17 +50,12 @@ void transformLandMarkToWorld(const T& x_landmark,
 
   // Transform point from Landmark to world coordinates
   T point_world[3];
-  T angleAxisLM[3];
-  angleAxisLM[0] = landmark_pose[(int)POSE::Rx];
-  angleAxisLM[1] = landmark_pose[(int)POSE::Ry];
-  angleAxisLM[2] = landmark_pose[(int)POSE::Rz];
-
-  ceres::AngleAxisRotatePoint(angleAxisLM, point_landmark, point_world);
+  ceres::UnitQuaternionRotatePoint(landmark_orientation, point_landmark, point_world);
 
   // lm_pose[0,1,2] are the translation.
-  point_world[0] += landmark_pose[(int)POSE::X];
-  point_world[1] += landmark_pose[(int)POSE::Y];
-  point_world[2] += landmark_pose[(int)POSE::Z];
+  point_world[0] += landmark_position[(int)POINT::X];
+  point_world[1] += landmark_position[(int)POINT::Y];
+  point_world[2] += landmark_position[(int)POINT::Z];
 
   *x_world = point_world[0];
   *y_world = point_world[1];
@@ -72,7 +69,8 @@ void transformLandMarkToWorld(const T& x_landmark,
  * @param x_world  x value of input point in world coordinates
  * @param y_world  y value of input point in world coordinates
  * @param z_world  z value of input point in world coordinates
- * @param camera_pose the six dimensional pose of the camera (rotation in rodriguez angles)
+ * @param camera_position the position of the camera
+ * @param camera_orientation the orientation of the camera (as quaternion)
  * @param camera_intrinsics the cameras intrinsic parameters
  * @param x_image x value of ouput point in image coordinates
  * @param y_image y value of ouput point in image coordinates
@@ -81,7 +79,8 @@ template <typename T>
 void transformWorldToImg(const T& x_world,
                          const T& y_world,
                          const T& z_world,
-                         const T* const camera_pose,
+                         const T* const camera_position,
+                         const T* const camera_orientation,
                          const T* const camera_intrinsics,
                          T* const x_image,
                          T* const y_image) {
@@ -93,14 +92,12 @@ void transformWorldToImg(const T& x_world,
 
   // This time we go from world -> cam
   // camera_pose[3,4,5] are the translation.
-  p_camera[0] = p_world[0] - camera_pose[(int)POSE::X];
-  p_camera[1] = p_world[1] - camera_pose[(int)POSE::Y];
-  p_camera[2] = p_world[2] - camera_pose[(int)POSE::Z];
-  T angleAxisCam[3];
-  angleAxisCam[0] = -camera_pose[(int)POSE::Rx];
-  angleAxisCam[1] = -camera_pose[(int)POSE::Ry];
-  angleAxisCam[2] = -camera_pose[(int)POSE::Rz];
-  ceres::AngleAxisRotatePoint(angleAxisCam, p_camera, p_camera);
+  p_camera[0] = p_world[0] - camera_position[(int)POINT::X];
+  p_camera[1] = p_world[1] - camera_position[(int)POINT::Y];
+  p_camera[2] = p_world[2] - camera_position[(int)POINT::Z];
+
+  // TODO doesn support inplace operation, (previous function AngleAxisRoatetPoint didn't support as well?)
+  ceres::UnitQuaternionRotatePoint(camera_orientation, p_camera, p_camera);
 
   // Transform point to image coordinates
   T p_image[3];
@@ -126,8 +123,10 @@ void transformWorldToImg(const T& x_world,
  *
  * @param x_landmark  x value of input point in landmark coordinates
  * @param y_landmark  y value of input point in landmark coordinates
- * @param landmark_pose the six dimensional pose of the landmark (rotation in rodriguez angles)
- * @param camera_pose the six dimensional pose of the camera (rotation in rodriguez angles)
+ * @param landmark_position the position of the landmark
+ * @param landmark_orientation the orientation of the landmark (as quaternion)
+ * @param camera_position the position of the camera
+ * @param camera_orientation the orientation of the camera (as quaternion)
  * @param camera_intrinsics the cameras intrinsic parameters
  * @param x_image x value of ouput point in image coordinates
  * @param y_image y value of ouput point in image coordinates
@@ -135,16 +134,18 @@ void transformWorldToImg(const T& x_world,
 template <typename T>
 void transformLandMarkToImage(const T& x_landmark,
                               const T& y_landmark,
-                              const T* const landmark_pose,
-                              const T* const camera_pose,
+                              const T* const landmark_position,
+                              const T* const landmark_orientation,
+                              const T* const camera_position,
+                              const T* const camera_orientation,
                               const T* const camera_intrinsics,
                               T* const x_image,
                               T* const y_image) {
   T x_world, y_world, z_world;
   transformLandMarkToWorld(
-      x_landmark, y_landmark, landmark_pose, &x_world, &y_world, &z_world);
+      x_landmark, y_landmark, landmark_position, landmark_orientation, &x_world, &y_world, &z_world);
   transformWorldToImg(
-      x_world, y_world, z_world, camera_pose, camera_intrinsics, x_image, y_image);
+      x_world, y_world, z_world, camera_position, camera_orientation, camera_intrinsics, x_image, y_image);
 }
 
 }  // namespace stargazer
