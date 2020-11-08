@@ -99,8 +99,9 @@ struct LandMarkToImageReprojectionFunctor {
                                      const double v_observed,
                                      const double x_marker,
                                      const double y_marker) {
+    constexpr int RESIDUAL_DIM = 2;
     return (new ceres::AutoDiffCostFunction<LandMarkToImageReprojectionFunctor,
-                                            2,
+                                            RESIDUAL_DIM,
                                             (int)POINT::N_PARAMS,  // landmark
                                             (int)QUAT::N_PARAMS,
                                             (int)POINT::N_PARAMS,  // camera
@@ -188,8 +189,9 @@ struct WorldToImageReprojectionFunctor {
                                      const double x_marker,
                                      const double y_marker,
                                      const double z_marker) {
+    constexpr int RESIDUAL_DIM = 2;
     return (
-        new ceres::AutoDiffCostFunction<WorldToImageReprojectionFunctor, 2, (int)POINT::N_PARAMS, (int)QUAT::N_PARAMS, (int)INTRINSICS::N_PARAMS>(
+        new ceres::AutoDiffCostFunction<WorldToImageReprojectionFunctor, RESIDUAL_DIM, (int)POINT::N_PARAMS, (int)QUAT::N_PARAMS, (int)INTRINSICS::N_PARAMS>(
             new WorldToImageReprojectionFunctor(
                 u_observed, v_observed, x_marker, y_marker, z_marker)));
   }

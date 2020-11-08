@@ -66,39 +66,24 @@ class CeresLocalizer : public Localizer {
   const ceres::Solver::Summary& getSummary() const { return summary; }
 
  private:
-  ceres::Problem problem;         /**< Ceres Prolem */
   ceres::Solver::Summary summary; /**< Summary of last optimization run */
-
-  bool is_initialized; /**< Flag indicating whether the pose is initialized */
 
   bool estimate_2d_pose = false;
 
   double z_upper_bound;
 
   /**
-   * @brief Will remove the residuals from last run.
-   *
-   */
-  void ClearResidualBlocks();
-
-  /**
    * @brief Will add a new residual block for every marker of every landmark given in img_landmarks
    *
    * @param img_landmarks Vector of observerved landmarks.
    */
-  void AddResidualBlocks(std::vector<ImgLandmark> img_landmarks);
-
-  /**
-   * @brief Will set the camera parameters constant, so that they do not get changed during optimization.
-   *
-   */
-  void SetCameraParamsConstant();
+  void AddResidualBlocks(ceres::Problem& problem, std::vector<ImgLandmark> img_landmarks);
 
   /**
    * @brief This is the actual working method, that sets the ceres configuration and runs to solver.
    *
    */
-  void Optimize();
+  void Optimize(ceres::Problem& problem);
 };
 
 }  // namespace stargazer

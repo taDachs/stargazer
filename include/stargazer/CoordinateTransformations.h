@@ -84,23 +84,25 @@ void transformWorldToImg(const T& x_world,
                          const T* const camera_intrinsics,
                          T* const x_image,
                          T* const y_image) {
-  // Create point in wolrd coordinates
-  const T p_world[3] = {x_world, y_world, z_world};
+
+  T rel_camera[(int)POINT::N_PARAMS];
+  rel_camera[0] = camera_position[(int)POINT::X] - x_world;
+  rel_camera[1] = camera_position[(int)POINT::Y] - y_world;
+  rel_camera[2] = camera_position[(int)POINT::Z] - z_world;
+
+  // Inverse quaternion
+  T inv_quat[(int)QUAT::N_PARAMS];
+  inv_quat[(int)QUAT::W] = camera_orientation[(int)QUAT::W];
+  inv_quat[(int)QUAT::X] = -camera_orientation[(int)QUAT::X];
+  inv_quat[(int)QUAT::Y] = -camera_orientation[(int)QUAT::Y];
+  inv_quat[(int)QUAT::Z] = -camera_orientation[(int)QUAT::Z];
 
   // Transform point to camera coordinates
-  T p_camera[3];
-
-  // This time we go from world -> cam
-  // camera_pose[3,4,5] are the translation.
-  p_camera[0] = p_world[0] - camera_position[(int)POINT::X];
-  p_camera[1] = p_world[1] - camera_position[(int)POINT::Y];
-  p_camera[2] = p_world[2] - camera_position[(int)POINT::Z];
-
-  // TODO doesn support inplace operation, (previous function AngleAxisRoatetPoint didn't support as well?)
-  ceres::UnitQuaternionRotatePoint(camera_orientation, p_camera, p_camera);
+  T p_camera[(int)POINT::N_PARAMS];
+  ceres::UnitQuaternionRotatePoint(inv_quat, rel_camera, p_camera);
 
   // Transform point to image coordinates
-  T p_image[3];
+  T p_image[(int)POINT::N_PARAMS];
   p_image[0] = camera_intrinsics[(int)INTRINSICS::fu] * p_camera[0] +
                camera_intrinsics[(int)INTRINSICS::u0] * p_camera[2];
   p_image[1] = camera_intrinsics[(int)INTRINSICS::fv] * p_camera[1] +

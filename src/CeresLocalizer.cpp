@@ -49,8 +49,6 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
     }
   }
   z_upper_bound -= 1.;  // Assumption: Camera is at least 1m below the stargazer landmarks
-
-  is_initialized = false;
 }
 
 void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float dt) {
@@ -59,22 +57,19 @@ void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float d
     return;
   }
 
-  if (!is_initialized) {
-    // TODO std::accumulate
-    for (auto& el : img_landmarks) {
-      ego_pose.position[(int)POINT::X] += landmarks[el.nID].pose.position[(int)POINT::X];
-      ego_pose.position[(int)POINT::Y] += landmarks[el.nID].pose.position[(int)POINT::Y];
-    }
-    ego_pose.position[(int)POINT::X] /= img_landmarks.size();
-    ego_pose.position[(int)POINT::Y] /= img_landmarks.size();
-    // is_initialized = true;
-  }
-
-  // Delete old data
-  ClearResidualBlocks();
+  ceres::Problem problem;  // fresh problem definition
 
   // Add new data
-  AddResidualBlocks(img_landmarks);
+  AddResidualBlocks(problem, img_landmarks);
+
+  // Constraints
+  if (estimate_2d_pose) {
+    ego_pose.position[(int)POINT::Z] = 0.;
+
+    problem.SetParameterization(
+        ego_pose.position.data(),
+        new ceres::SubsetParameterization((int)POINT::N_PARAMS, {{(int)POINT::Z}}));
+  }
 
   // Prevents local minimum with all points behind camera (allowed by camera model)
   // Assumes that camera is approximately looking into positive z direction (map)
@@ -82,30 +77,20 @@ void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float d
     problem.SetParameterUpperBound(ego_pose.position.data(), (int)POINT::Z, z_upper_bound);
 
   // Set Quaternion Paramterization (4 variables but 3 dof)
-  static bool is_local_parametrization_set = false;
-  if (problem.HasParameterBlock(ego_pose.orientation.data()) && !is_local_parametrization_set) {
+  if (problem.HasParameterBlock(ego_pose.orientation.data()))
     problem.SetParameterization(ego_pose.orientation.data(),
                                 new ceres::QuaternionParameterization());
-    is_local_parametrization_set = true;
-  }
 
   // Set Camera Parameters Constant
   if (problem.HasParameterBlock(camera_intrinsics.data()))
     problem.SetParameterBlockConstant(camera_intrinsics.data());
 
   // Optimize
-  Optimize();
+  Optimize(problem);
 }
 
-void CeresLocalizer::ClearResidualBlocks() {
-  std::vector<ceres::ResidualBlockId> residual_blocks;
-  problem.GetResidualBlocks(&residual_blocks);
-  for (auto& block : residual_blocks) {
-    problem.RemoveResidualBlock(block);
-  }
-}
-
-void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
+void CeresLocalizer::AddResidualBlocks(ceres::Problem& problem,
+                                       std::vector<ImgLandmark> img_landmarks) {
   for (auto& img_lm : img_landmarks) {
 
     if (img_lm.idPoints.size() + img_lm.corners.size() !=
@@ -144,27 +129,9 @@ void CeresLocalizer::AddResidualBlocks(std::vector<ImgLandmark> img_landmarks) {
                                camera_intrinsics.data());
     }
   }
-  if (!is_initialized) {
-    if (estimate_2d_pose) {
-
-      problem.SetParameterization(ego_pose.position.data(),
-                                  new ceres::SubsetParameterization(
-                                      (int)POINT::N_PARAMS, {{(int)POINT::Z}}));
-
-      problem.SetParameterization(
-          ego_pose.orientation.data(),
-          new ceres::SubsetParameterization((int)QUAT::N_PARAMS,
-                                            {{(int)QUAT::X, (int)QUAT::Y}}));
-
-      ego_pose.position[(int)POINT::Z] = 0.;
-      ego_pose.orientation[(int)QUAT::X] = 0.;
-      ego_pose.orientation[(int)QUAT::Y] = 0.;
-    }
-    is_initialized = true;
-  }
 }
 
-void CeresLocalizer::Optimize() {
+void CeresLocalizer::Optimize(ceres::Problem& problem) {
   ceres::Solver::Options options;
   // set optimization settings
   options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
