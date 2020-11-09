@@ -102,32 +102,72 @@ void CeresLocalizer::AddResidualBlocks(ceres::Problem& problem,
       return;
     };
 
-    // Add residual block, for every one of the seen points.
-    for (size_t k = 0; k < NUM_CORNERS; k++) {
-      ceres::CostFunction* cost_function;
-      // if (k < NUM_CORNERS) {
-      cost_function = WorldToImageReprojectionFunctor::Create(
-          img_lm.corners[k].x,
-          img_lm.corners[k].y,
-          landmarks[img_lm.nID].points[k][(int)POINT::X],
-          landmarks[img_lm.nID].points[k][(int)POINT::Y],
-          landmarks[img_lm.nID].points[k][(int)POINT::Z]);
-      // Don't use inner points for localization (speeds up optimization by
-      // approximately by factor 2) } else {
-      //   cost_function = WorldToImageReprojectionFunctor::Create(
-      //       img_lm.idPoints[k - NUM_CORNERS].x,
-      //       img_lm.idPoints[k - NUM_CORNERS].y,
-      //       landmarks[img_lm.nID].points[k][(int)POINT::X],
-      //       landmarks[img_lm.nID].points[k][(int)POINT::Y],
-      //       landmarks[img_lm.nID].points[k][(int)POINT::Z]);
-      // }
-      // CauchyLoss(9): a pixel-error of 3 is still considered as inlayer
-      problem.AddResidualBlock(cost_function,
-                               new ceres::CauchyLoss(9),
-                               ego_pose.position.data(),
-                               ego_pose.orientation.data(),
-                               camera_intrinsics.data());
-    }
+    /*
+     * The localization based on a single landmark is not robust except when the
+     * camera is close to one landmark and the leds are quite distant in image
+     * coordinates. However the landmark finder expects the landmark leds
+     * cluster to be small. So this will never happen in our use case.
+     *
+     * Assuming "distance_markers >> distance_leds_of_one_marker" we can drop
+     * the information for all leds but one of each landmark.
+     *
+     * One led has bigger noise than the average of all leds, but by doing so we
+     * can speed up the optimization by factor of approximately 6. (runtime
+     * seems to be proportional to the number of residual blocks, at least at
+     * this problem size)
+     *
+     * Assuming ergodicity, there's no loss of information if we get 6 times
+     * more measurements over time instead of having one measurement which
+     * includes 6 measurements at once.
+     *
+     * BUT now the latency drops as well, which is a benefit of this approach.
+     * Additionally for dynamic problems which we want to solve, a higher
+     * frequency is favourable.
+     *
+     * Of course this approach is only feasible for the localization, not the
+     * calibration procedure.
+     */
+
+    // Add a single residual block of one corner (shouldn't matter which one)
+    ceres::CostFunction* cost_function;
+    cost_function = WorldToImageReprojectionFunctor::Create(
+        img_lm.corners[0].x,
+        img_lm.corners[0].y,
+        landmarks[img_lm.nID].points[0][(int)POINT::X],
+        landmarks[img_lm.nID].points[0][(int)POINT::Y],
+        landmarks[img_lm.nID].points[0][(int)POINT::Z]);
+    // CauchyLoss(9): a pixel-error of 3 is still considered as inlayer
+    problem.AddResidualBlock(cost_function,
+                             new ceres::CauchyLoss(9),
+                             ego_pose.position.data(),
+                             ego_pose.orientation.data(),
+                             camera_intrinsics.data());
+
+    // // Add residual block, for every one of the seen points.
+    // for (size_t k = 0; k < NUM_CORNERS; k++) {
+    //   ceres::CostFunction* cost_function;
+    //   // if (k < NUM_CORNERS) {
+    //   cost_function = WorldToImageReprojectionFunctor::Create(
+    //       img_lm.corners[k].x,
+    //       img_lm.corners[k].y,
+    //       landmarks[img_lm.nID].points[k][(int)POINT::X],
+    //       landmarks[img_lm.nID].points[k][(int)POINT::Y],
+    //       landmarks[img_lm.nID].points[k][(int)POINT::Z]);
+    //   } else {
+    //     cost_function = WorldToImageReprojectionFunctor::Create(
+    //         img_lm.idPoints[k - NUM_CORNERS].x,
+    //         img_lm.idPoints[k - NUM_CORNERS].y,
+    //         landmarks[img_lm.nID].points[k][(int)POINT::X],
+    //         landmarks[img_lm.nID].points[k][(int)POINT::Y],
+    //         landmarks[img_lm.nID].points[k][(int)POINT::Z]);
+    //   }
+    //   // CauchyLoss(9): a pixel-error of 3 is still considered as inlayer
+    //   problem.AddResidualBlock(cost_function,
+    //                            new ceres::CauchyLoss(9),
+    //                            ego_pose.position.data(),
+    //                            ego_pose.orientation.data(),
+    //                            camera_intrinsics.data());
+    // }
   }
 }
 
