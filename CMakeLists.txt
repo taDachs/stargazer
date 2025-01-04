@@ -1,46 +1,19 @@
-#pkg_version=2.0.3
-# Modify only if you know what you are doing!
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.8)
 project(stargazer)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-if(COMPILER_SUPPORTS_CXX17)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-else()
-    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support. Please use a different C++ compiler.")
-endif()
-
-###################
-## find packages ##
-###################
-find_package(catkin REQUIRED COMPONENTS ceres_catkin glog_catkin)
+# ROS 2 dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(yaml-cpp REQUIRED)
-#find_package(Ceres REQUIRED)
+find_package(Ceres REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(ament_cmake_gtest REQUIRED)
 
-############################
-## read source code files ##
-############################
-file(GLOB_RECURSE PROJECT_HEADER_FILES_INC RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "include/*.h" "include/*.hpp")
-file(GLOB PROJECT_SOURCE_FILES_INC RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "src/*.h" "src/*.hpp")
-file(GLOB PROJECT_SOURCE_FILES_SRC RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "src/*.cpp")
-
-###################################
-## catkin specific configuration ##
-###################################
-# The catkin_package macro generates cmake config files for your package
-# Declare things to be passed to dependent projects
-# INCLUDE_DIRS: uncomment this if you package contains header files
-# LIBRARIES: libraries you create in this project that dependent projects also need
-# CATKIN_DEPENDS: catkin_packages dependent projects also need
-# DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-    INCLUDE_DIRS include ${catkin_EXPORT_INCLUDE_DIRS}
-    LIBRARIES ${PROJECT_NAME} ${catkin_EXPORT_LIBRARIES}
-    CATKIN_DEPENDS ${catkin_EXPORT_DEPENDS}
-    )
+# Compiler settings
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
 ###########
 ## Build ##
@@ -48,68 +21,89 @@ catkin_package(
 # Add include and library directories
 include_directories(
     include/${PROJECT_NAME}
-    ${catkin_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
-    )
-
-link_directories(
-    ${catkin_LIBRARY_DIRS}
-    )
-
-# Declare a cpp library
-add_library(${PROJECT_NAME}
-    ${PROJECT_HEADER_FILES_INC}
-    ${PROJECT_SOURCE_FILES_INC}
-    ${PROJECT_SOURCE_FILES_SRC}
-    )
-add_dependencies(${PROJECT_NAME}
-    ${catkin_EXPORTED_TARGETS}
-    )
-target_link_libraries(${PROJECT_NAME}
-    ${catkin_LIBRARIES}
-    ${OpenCV_LIBRARIES}
-    yaml-cpp
-    )
-
-
-#############
-## Install ##
-#############
-if (TARGET ${PROJECT_NAME})
-    # Mark library for installation
-    install(TARGETS ${PROJECT_NAME}
-            ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-            LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-            RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-            )
-endif ()
-# Mark c++ header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-        FILES_MATCHING PATTERN "*.h"
+    ${CERES_INCLUDE_DIR}
 )
 
-#############
-## Testing ##
-#############
-# Add test targets for cpp tests
-if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(test_config_handler test/test_ConfigHandler.cpp WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/test)
-  add_dependencies(test_config_handler
-    ${catkin_EXPORTED_TARGETS}
-    ${${PROJECT_NAME}_EXPORTED_TARGETS}
-    )
-  target_link_libraries(test_config_handler
-    ${catkin_LIBRARIES}
+# Declare a C++ library
+add_library(${PROJECT_NAME} SHARED
+    src/CeresLocalizer.cpp
+    src/DebugVisualizer.cpp
+    src/LandmarkCalibrator.cpp
+    src/LandmarkFinder.cpp
+)
+target_link_libraries(${PROJECT_NAME}
+    ${OpenCV_LIBRARIES}
     yaml-cpp
+    Ceres::ceres
+)
+ament_target_dependencies(${PROJECT_NAME}
+    rclcpp
+    OpenCV
+    yaml-cpp
+    Eigen3
+    Ceres
+)
+
+# Install headers and library
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+###############
+## Testing ##
+###############
+if(BUILD_TESTING)
+  # ConfigHandler Test
+  ament_add_gtest(test_config_handler test/test_ConfigHandler.cpp WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/test)
+  if(TARGET test_config_handler)
+    target_include_directories(test_config_handler PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
     )
-  catkin_add_gtest(test_landmark test/test_landmark)
-  add_dependencies(test_landmark
-    ${catkin_EXPORTED_TARGETS}
-    ${${PROJECT_NAME}_EXPORTED_TARGETS}
+    target_link_libraries(test_config_handler
+        ${PROJECT_NAME}
+        yaml-cpp
     )
-  target_link_libraries(test_landmark
-    ${catkin_LIBRARIES}
+  endif()
+
+  # Landmark Test
+  ament_add_gtest(test_landmark test/test_landmark.cpp)
+  if(TARGET test_landmark)
+    target_include_directories(test_landmark PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
     )
+    target_link_libraries(test_landmark
+        ${PROJECT_NAME}
+    )
+  endif()
+
+  install(
+    TARGETS test_config_handler test_landmark
+    DESTINATION lib/${PROJECT_NAME}/test
+  )
 endif()
+
+###############
+## Package ##
+###############
+ament_export_targets(${PROJECT_NAME}Targets HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+    rclcpp
+    OpenCV
+    yaml-cpp
+    Eigen3
+    Ceres
+)
+ament_package()

@@ -72,8 +72,8 @@ TEST(ConfigHandler, Write) {
   ASSERT_NO_THROW(writeMapConfig(map_testfile, landmarks));
   camera_params_t camera_intrinsics_test;
   landmark_map_t landmarks_test;
-  ASSERT_NO_THROW(readCamConfig(cam_testfile, camera_intrinsics));
-  ASSERT_NO_THROW(readMapConfig(map_testfile, landmarks));
+  ASSERT_NO_THROW(readCamConfig(cam_testfile, camera_intrinsics_test));
+  ASSERT_NO_THROW(readMapConfig(map_testfile, landmarks_test));
   ASSERT_EQ(landmarks.size(), landmarks_test.size());
 }
 

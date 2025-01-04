@@ -109,7 +109,6 @@ void LandmarkCalibrator::Optimize() {
   ceres::Solver::Options options;
   //  options.linear_solver_type = ceres::SPARSE_SCHUR;
   options.num_threads = 8;
-  options.num_linear_solver_threads = 8;
   options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
   options.minimizer_progress_to_stdout = true;
   options.max_num_iterations = 200;

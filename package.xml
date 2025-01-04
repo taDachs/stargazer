@@ -1,22 +1,23 @@
 <?xml version="1.0"?>
-<package format="2">
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>stargazer</name>
   <version>1.0.0</version>
   <description>A landmark-based visual indoor localization system for mobile robots</description>
 
-  <license>GPLv3</license>
   <maintainer email="wirges@fzi.de">Sascha Wirges</maintainer>
+  <license>GPLv3</license>
+  <url type="repository">https://github.com/KIT-MRT/stargazer.git</url>
   <author email="claudio.bandera@kit.edu">Claudio Bandera</author>
   <author email="wechtc@gmail.com">Christopher Wecht</author>
-  <url type="repository">https://github.com/KIT-MRT/stargazer.git</url>
-
-  <buildtool_depend>catkin</buildtool_depend>
-  <test_depend>gtest</test_depend>
 
   <depend>boost</depend>
-  <depend>ceres</depend>
+  <depend>libceres-dev</depend>
   <depend>eigen</depend>
-  <depend>opencv</depend>
+  <depend>libopencv-dev</depend>
   <depend>yaml-cpp</depend>
-  <depend>glog_catkin</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

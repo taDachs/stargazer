@@ -51,7 +51,7 @@ CeresLocalizer::CeresLocalizer(const std::string& cam_cfgfile,
   z_upper_bound -= 1.;  // Assumption: Camera is at least 1m below the stargazer landmarks
 }
 
-void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, float dt) {
+void CeresLocalizer::UpdatePose(std::vector<ImgLandmark>& img_landmarks, [[maybe_unused]] float dt) {
   if (img_landmarks.empty()) {
     std::cout << "Localizer received empty landmarks vector" << std::endl;
     return;

@@ -28,3 +28,6 @@
 *.app
 CMakeLists.txt.user
 doc_compiled/
+
+test/res/cam_test.yaml
+test/res/map_test.yaml
